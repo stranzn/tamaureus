@@ -1,9 +1,11 @@
 import { ParentComponent } from "solid-js";
 import Menu from "../components/menu";
+import { mountTheme } from "../components/theme-toggle";
 import "./index.css";
 
 
 const RootLayout: ParentComponent = (props) => {
+    mountTheme();
     return (
         <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
             <Menu />

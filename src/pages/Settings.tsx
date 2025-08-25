@@ -1,4 +1,4 @@
-import ThemeToggle from "../components/themetoggle";
+import ThemeToggle from "../components/theme-toggle";
 
 export default function Settings() {
     
