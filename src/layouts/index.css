@@ -1,1 +1,28 @@
+/* src/app.css */
 @import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Default (light) theme */
+@theme {
+  --color-primary: #166534;
+  --color-muted: #e5e5e5;
+  --color-tertiary: #94a3b8;
+  --color-surface: #ffffff;
+  --color-accent: #64748b;
+  --color-secondary: #dcfce7;
+  --color-content: #0f172a;
+  --color-background: #f8fafc;
+}
+
+/* Dark theme */
+.dark {
+  --color-primary: #4ade80;
+  --color-muted: #334155;
+  --color-tertiary: #64748b;
+  --color-surface: #1e293b;
+  --color-accent: #94a3b8;
+  --color-secondary: #064e3b;
+  --color-content: #f1f5f9;
+  --color-background: #0f172a;
+}
