@@ -1,91 +1,58 @@
-import { A } from "@solidjs/router";
+import { A, useLocation } from "@solidjs/router";
 import { createSignal } from "solid-js";
+import { Home, Headphones, Settings } from "lucide-solid"; // icons
 
-export default function Menu() {
-  const [isOpen, setIsOpen] = createSignal(false);
+export default function Sidebar() {
+  const [collapsed, setCollapsed] = createSignal(false);
+  const location = useLocation(); // get current route
 
-  const toggleMenu = () => setIsOpen(!isOpen());
-  const closeMenu = () => setIsOpen(false);
+  const links = [
+    { href: "/", label: "Library", icon: Home },
+    { href: "/listen", label: "Listen", icon: Headphones },
+    { href: "/settings", label: "Settings", icon: Settings },
+  ];
 
   return (
-    <>
-      {/* Burger button */}
-      <button
-        class="fixed top-5 left-5 z-50 bg-transparent border-none cursor-pointer w-8 h-8 flex flex-col justify-around p-0"
-        onClick={toggleMenu}
-        aria-label="Toggle menu"
-      >
-        <span
-          class={`w-6 h-0.5 bg-[var(--color-content)] transition-all duration-300 origin-center ${
-            isOpen() ? "rotate-45 translate-x-1.5 translate-y-1.5" : ""
-          }`}
-        ></span>
-        <span
-          class={`w-6 h-0.5 bg-[var(--color-content)] transition-all duration-300 origin-center ${
-            isOpen() ? "opacity-0" : ""
-          }`}
-        ></span>
-        <span
-          class={`w-6 h-0.5 bg-[var(--color-content)] transition-all duration-300 origin-center ${
-            isOpen() ? "-rotate-45 translate-x-1.5 -translate-y-1.5" : ""
-          }`}
-        ></span>
-      </button>
+    <aside
+      class={`min-h-screen bg-[var(--color-surface)] border-r border-[var(--color-muted)] 
+        transition-all duration-300 flex flex-col
+        ${collapsed() ? "w-20" : "w-64"}`}
+    >
+      {/* Header with collapse button */}
+      <div class="flex items-center justify-between p-4 border-b border-[var(--color-muted)]">
+        {!collapsed() && (
+          <h1 class="text-lg font-bold text-[var(--color-content)]">Menu</h1>
+        )}
+        <button
+          onClick={() => setCollapsed(!collapsed())}
+          class="p-2 rounded hover:bg-[var(--color-muted)] text-[var(--color-content)]"
+        >
+          {collapsed() ? "»" : "«"}
+        </button>
+      </div>
 
-      {/* Overlay */}
-      <div
-        class={`fixed inset-0 bg-[var(--color-background)]/50 z-40 transition-all duration-300 ${
-          isOpen() ? "opacity-100 visible" : "opacity-0 invisible"
-        }`}
-        onClick={closeMenu}
-      ></div>
-
-      {/* Menu */}
-      <nav
-        class={`fixed top-0 left-0 w-72 h-screen bg-[var(--color-surface)] shadow-lg z-40 flex flex-col transition-transform duration-300 ${
-          isOpen() ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        {/* Header */}
-        <div class="flex justify-between items-center p-5 border-b border-[var(--color-muted)] bg-[var(--color-surface)]">
-          <h2 class="m-0 text-lg text-[var(--color-content)]">Menu</h2>
-          <button
-            class="bg-none border-none text-2xl cursor-pointer text-[var(--color-content)] p-0 w-8 h-8 flex items-center justify-center rounded-full transition-colors duration-200 hover:bg-[var(--color-muted)]"
-            onClick={closeMenu}
-            aria-label="Close menu"
-          >
-            ×
-          </button>
-        </div>
-
-        {/* Links */}
-        <div class="flex-1 py-5">
-          <A
-            href="/"
-            onClick={closeMenu}
-            class="block py-4 px-5 text-[var(--color-content)] text-base no-underline border-l-4 border-transparent transition-all duration-200 hover:bg-[var(--color-muted)] hover:border-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-inset"
-          >
-            Library
-          </A>
-          <A
-            href="/listen"
-            onClick={closeMenu}
-            class="block py-4 px-5 text-[var(--color-content)] text-base no-underline border-l-4 border-transparent transition-all duration-200 hover:bg-[var(--color-muted)] hover:border-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-inset"
-          >
-            Listen
-          </A>
-          <A
-            href="/settings"
-            onClick={closeMenu}
-            class="block py-4 px-5 text-[var(--color-content)] text-base no-underline border-l-4 border-transparent transition-all duration-200 hover:bg-[var(--color-muted)] hover:border-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-inset"
-          >
-            Settings
-          </A>
-        </div>
+      {/* Nav links */}
+      <nav class="flex-1 py-4 flex flex-col gap-1">
+        {links.map(({ href, label, icon: Icon }) => {
+          const active = location.pathname === href;
+          return (
+            <A
+              href={href}
+              class={`flex items-center gap-3 px-4 py-3 rounded-md transition-colors
+                ${active
+                  ? "bg-[var(--color-primary)] text-white"
+                  : "text-[var(--color-content)] hover:bg-[var(--color-muted)]"}`}
+            >
+              <Icon class="w-5 h-5" />
+              {!collapsed() && <span>{label}</span>}
+            </A>
+          );
+        })}
       </nav>
-    </>
+    </aside>
   );
 }
+
 
 
 
