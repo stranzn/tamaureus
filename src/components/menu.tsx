@@ -14,7 +14,7 @@ export default function Sidebar() {
 
   return (
     <aside
-      class={`min-h-screen bg-[var(--color-surface)] border-r border-[var(--color-muted)] 
+      class={`h-full bg-[var(--color-surface)] border-r border-[var(--color-muted)] 
         transition-all duration-300 flex flex-col
         ${collapsed() ? "w-20" : "w-64"}`}
     >
