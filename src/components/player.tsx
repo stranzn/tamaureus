@@ -26,23 +26,35 @@ export default function Player() {
 
   return (
     <div class="w-full shadow-lg p-6" style={{ "background-color": 'var(--color-surface)' }}>
-      <div class="flex items-center gap-6">
+      <div class="flex items-center gap-30">
         {/* Thumbnail - Left */}
-        <div class="flex-shrink-0">
-          <img
-            src={albumCover()}
-            alt="Album Cover"
-            class="w-24 h-24 rounded-md object-cover"
-          />
+        <div class="flex flex-row items-center gap-4 p-2">
+            <div class="flex-shrink-0">
+                <img
+                src={albumCover()}
+                alt="Album Cover"
+                class="w-16 h-16 rounded-md object-cover shadow-sm"
+                />
+            </div>
+
+            <div class="flex flex-col justify-center min-w-0">
+                <h3 
+                class="font-semibold truncate text-base" 
+                style={{ color: 'var(--color-content)' }}
+                >
+                {songTitle()}
+                </h3>
+                <p 
+                class="text-sm truncate" 
+                style={{ color: 'var(--color-tertiary)' }}
+                >
+                {artistName()}
+                </p>
+            </div>
         </div>
 
         {/* Controls - Middle */}
         <div class="flex-1 flex flex-col gap-4">
-          {/* Song Info */}
-          <div>
-            <h3 class="font-semibold" style={{ color: 'var(--color-content)' }}>{songTitle()}</h3>
-            <p class="text-sm" style={{ color: 'var(--color-tertiary)' }}>{artistName()}</p>
-          </div>
 
           {/* Progress Bar */}
           <div class="flex items-center gap-3">
@@ -94,7 +106,7 @@ export default function Player() {
               style={{ color: 'var(--color-accent)' }}
               aria-label="Previous track"
             >
-              <SkipBack size={24} />
+              <SkipBack size={20} />
             </button>
             <button
               onClick={() => setIsPlaying(!isPlaying())}
@@ -102,7 +114,7 @@ export default function Player() {
               style={{ "background-color": 'var(--color-primary)' }}
               aria-label={isPlaying() ? 'Pause' : 'Play'}
             >
-              {isPlaying() ? <Pause size={24} /> : <Play size={24} />}
+              {isPlaying() ? <Pause size={20} /> : <Play size={20} />}
             </button>
             <button
               onClick={() => {}}
@@ -110,7 +122,7 @@ export default function Player() {
               style={{ color: 'var(--color-accent)' }}
               aria-label="Next track"
             >
-              <SkipForward size={24} />
+              <SkipForward size={20} />
             </button>
           </div>
         </div>

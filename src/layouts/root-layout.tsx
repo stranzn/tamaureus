@@ -10,10 +10,10 @@ const RootLayout: ParentComponent = (props) => {
     return (
         <div class="h-screen flex flex-col overflow-hidden">
         
-            <div class="flex flex-1 flex-row overflow-hidden">
+            <div class="flex flex-1 flex-row transition-colors duration-300 overflow-hidden">
                 <Menu />
                 
-                <main class="flex-1 bg-[var(--color-background)] text-[var(--color-content)] overflow-y-auto">
+                <main class="flex-1 pl-6 pt-6 bg-[var(--color-background)] text-[var(--color-content)] transition-colors duration-300 overflow-y-auto">
                     {props.children}
                 </main>
             </div>
