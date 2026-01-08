@@ -3,6 +3,7 @@
 
 mod db;
 mod models;
+mod player;
 
 fn main() {
     tamaureus_lib::run()
