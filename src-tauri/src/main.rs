@@ -3,6 +3,7 @@
 
 mod db;
 mod models;
+mod user_config;
 
 fn main() {
     tamaureus_lib::run()
