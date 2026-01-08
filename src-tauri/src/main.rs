@@ -3,6 +3,7 @@
 
 mod db;
 mod models;
+mod user_config;
 mod player;
 
 fn main() {

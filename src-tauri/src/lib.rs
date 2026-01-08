@@ -5,6 +5,7 @@ use tauri::Manager;
 
 mod db;
 mod models;
+mod user_config;
 
 fn get_db_path(app: &tauri::AppHandle) -> String {
     let path = app
@@ -24,6 +25,7 @@ fn get_db_path(app: &tauri::AppHandle) -> String {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let db_url = get_db_path(&app.handle());
 
@@ -42,7 +44,7 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![db::get_artists, db::add_artist])
+        .invoke_handler(tauri::generate_handler![db::get_artists, db::add_artist, user_config::save_music_dir, user_config::load_music_dir])
         .run(tauri::generate_context!())
         .expect("error running tauri application");
 }
