@@ -1,11 +1,13 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+mod db;
+mod models;
+mod user_config;
+mod player;
 
 use sqlx::{sqlite::SqlitePoolOptions};
 use tauri::Manager;
 
-mod db;
-mod models;
-mod user_config;
+
 
 fn get_db_path(app: &tauri::AppHandle) -> String {
     let path = app
@@ -42,9 +44,22 @@ pub fn run() {
 
             app.manage(models::AppState { db: pool });
 
+            let audio_player = models::AudioPlayer::new();
+            app.manage(audio_player);
+
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![db::get_artists, db::add_artist, user_config::save_music_dir, user_config::load_music_dir])
+        .invoke_handler(tauri::generate_handler![
+            db::get_artists, 
+            db::add_artist, 
+            user_config::save_music_dir, 
+            user_config::load_music_dir, 
+            player::play_track,
+            player::pause,
+            player::resume,
+            player::stop_track,
+            player::set_volume,
+            player::get_playback_state])
         .run(tauri::generate_context!())
         .expect("error running tauri application");
 }
