@@ -16,12 +16,26 @@
 
 /* Dark theme */
 .dark {
-  --color-primary: #9ca3af;     /* highlight color / active tab */
-  --color-secondary: #6b7280;   /* secondary elements, borders, inactive tabs */
-  --color-tertiary: #64748b;    /* subtle details, icons, muted text */
-  --color-surface: #1e1f1c;     /* menu background, cards, panels */
-  --color-background: #1e1f1c;  /* main page background */
-  --color-accent: #94a3b8;      /* buttons, focus rings, links */
-  --color-muted: #334155;       /* borders, separators, hover backgrounds */
-  --color-content: #f1f5f9;     /* main text color */
+  --color-primary: #d1d5db;
+  --color-secondary: #9ca3af;
+  --color-tertiary: #6b7280;
+  --color-surface: #202124;
+  --color-background: #121212;
+  --color-accent: #e5e7eb;
+  --color-muted: #2f3136;
+  --color-content: #f3f4f6;
 }
+
+/* Midnight Theme */
+.midnight {
+  --color-primary: #a5b4fc;
+  --color-secondary: #4338ca;
+  --color-tertiary: #6366f1;
+  --color-surface: #1e1b4b;
+  --color-background: #0f172a;
+  --color-accent: #818cf8;
+  --color-muted: #312e81;
+  --color-content: #e0e7ff;
+}
+
+

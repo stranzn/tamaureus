@@ -59,7 +59,7 @@ export default function Setup() {
       <div class="bg-black/20 p-6 rounded-lg border border-white/10 w-full max-w-md">
         <button 
           onClick={chooseFolder}
-          class="bg-[var(--color-accent)] hover:bg-blue-500 text-white px-6 py-2 rounded-md transition-colors"
+          class="bg-[var(--color-accent)] hover:bg-[var(--color-muted)] text-white px-6 py-2 rounded-md transition-colors"
         >
           {directory() ? "Change Folder" : "Select Folder"}
         </button>
