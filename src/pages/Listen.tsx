@@ -11,7 +11,16 @@ export default function Library() {
       });
       console.log("Artist added with rowid:", rowid);
     } catch (error) {
-      console;
+      console.log(error);
+    }
+  };
+
+  const playSong = async (): Promise<void> => {
+    try {
+        const song = await invoke<void>("play_track", { path: "C:/Users/Nik6s/Videos/slop.mp3"});
+        console.log("Song Playing!");
+    } catch (error) {
+      console.error(error);
     }
   };
 
@@ -29,6 +38,7 @@ export default function Library() {
         placeholder="Enter artists name here!"
       />
       <button onClick={addArtist}>Add Artist</button>
+      <button class="m-2 p-2" onClick={playSong}>Play Song!</button>
     </div>
   );
 }
