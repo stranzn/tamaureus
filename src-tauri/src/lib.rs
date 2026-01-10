@@ -6,6 +6,9 @@ mod player;
 
 use sqlx::{sqlite::SqlitePoolOptions};
 use tauri::Manager;
+use std::time::Duration;
+use tauri::Emitter;
+use crate::models::AudioPlayer;
 
 
 
@@ -23,6 +26,7 @@ fn get_db_path(app: &tauri::AppHandle) -> String {
 
     format!("sqlite://{}?mode=rwc", path.display())
 }
+
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -59,7 +63,9 @@ pub fn run() {
             player::resume,
             player::stop_track,
             player::set_volume,
-            player::get_playback_state])
+            player::get_playback_state,
+            player::seek_track,
+            player::get_position])
         .run(tauri::generate_context!())
         .expect("error running tauri application");
 }

@@ -1,56 +1,47 @@
-import { createSignal } from 'solid-js';
+import { playerStore } from '../store/playerStore';
 import SongInfo from './player_components/song-info';
 import Controls from './player_components/controls';
 import Volume from './player_components/volume';
 
 export default function Player() {
-  const [isPlaying, setIsPlaying] = createSignal(false);
-  const [volume, setVolume] = createSignal([65]);
-  const [isMuted, setIsMuted] = createSignal(false);
-
-  // Variables for metadata
-  // Most of these will use information from the database
-
-  const [songTitle, setSongTitle] = createSignal("Song Title");
-  const [artistName, setArtistName] = createSignal("Artist Name");
-  const [albumCover, setAlbumCover] = createSignal("https://i.imgur.com/5rqnfP8.png"); // has a default image if there is nothing provided
-  const [duration, setDuration] = createSignal(225);
-  const [currentTime, setCurrentTime] = createSignal(0);
-
-  // Handlers
-  const handleVolumeChange = (value: number[]) => {
-    setVolume(value);
-    if (value[0] > 0) setIsMuted(false);
-  };
+  // Destructure for easier usage
+  const { 
+    isPlaying, volume, isMuted, 
+    songTitle, artistName, albumCover, duration, currentTime,
+    togglePlay, setVolumeLevel, toggleMute, seek, skip, loadAndPlay, previewSeek, setIsDragging,
+  } = playerStore;
 
   return (
     <div class="w-full shadow-lg p-6" style={{ "background-color": 'var(--color-surface)' }}>
       <div class="flex items-center gap-30">
         
-        {/* Left: Song Info */}
+        {/* Left */}
         <SongInfo 
           cover={albumCover()} 
           title={songTitle()} 
           artist={artistName()} 
         />
 
-        {/* Middle: Controls */}
+        {/* Middle */}
         <Controls 
           isPlaying={isPlaying()}
           currentTime={currentTime()}
           duration={duration()}
-          onPlayPause={() => setIsPlaying(!isPlaying())}
-          onSeek={(val) => setCurrentTime(val)}
-          onPrev={() => {}}
-          onNext={() => {}}
+          onPlayPause={togglePlay}
+          onPreviewSeek={previewSeek}           // ← required for live preview
+          onSeek={seek}
+          onStartDrag={() => setIsDragging(true)}
+          onEndDrag={() => setIsDragging(false)}
+          onPrev={() => skip('prev')}
+          onNext={() => skip('next')}
         />
 
-        {/* Right: Volume */}
+        {/* Right */}
         <Volume 
           volume={volume()}
           isMuted={isMuted()}
-          onVolumeChange={handleVolumeChange}
-          onToggleMute={() => setIsMuted(!isMuted())}
+          onVolumeChange={setVolumeLevel}
+          onToggleMute={toggleMute}
         />
 
       </div>
