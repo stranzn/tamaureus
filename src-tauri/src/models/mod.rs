@@ -8,6 +8,15 @@ pub struct Artist {
     pub name: String,
 }
 
+#[derive(Debug, Clone, FromRow, serde::Serialize, serde::Deserialize)]
+pub struct Album {
+    pub id: i64,
+    pub title: String,
+    pub artist_id: i64,
+    pub cover_path: Option<String>
+}
+
+#[derive(Clone)]
 pub struct AppState {
     pub db: sqlx::SqlitePool,
 }

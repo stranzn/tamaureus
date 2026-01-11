@@ -3,6 +3,7 @@ mod db;
 mod models;
 mod user_config;
 mod player;
+mod utils;
 
 use sqlx::{sqlite::SqlitePoolOptions};
 use tauri::Manager;
@@ -50,8 +51,8 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            db::get_artists, 
-            db::add_artist, 
+            // db::get_artists, 
+            // db::add_artist, 
             user_config::save_music_dir, 
             user_config::load_music_dir, 
             player::play_track,
