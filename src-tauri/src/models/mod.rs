@@ -12,9 +12,9 @@ pub struct AppState {
     pub db: sqlx::SqlitePool,
 }
 
-pub struct AudioPlayer {
-    // Keeps the audio device open for the entire app lifetime
-    pub _stream: OutputStream,
-    // Shared sink we reuse for all playback
-    pub sink: Arc<Mutex<Sink>>,
-}
+// pub struct AudioPlayer {
+//     // Keeps the audio device open for the entire app lifetime
+//     pub _stream: OutputStream,
+//     // Shared sink we reuse for all playback
+//     pub sink: Arc<Mutex<Sink>>,
+// }

@@ -1,68 +1,81 @@
-import { createSignal, createRoot } from 'solid-js';
+import { createSignal, createMemo, createRoot, onCleanup } from 'solid-js';
 import { invoke } from '@tauri-apps/api/core';
-import { onCleanup } from "solid-js";
+import { listen } from '@tauri-apps/api/event';
 
 function createPlayerStore() {
-  // --- State ---
+  // ── Core playback state ────────────────────────────────────────────────
   const [isPlaying, setIsPlaying] = createSignal(false);
-  const [volume, setVolume] = createSignal([65]); // UI scale 0-100
-  const [isMuted, setIsMuted] = createSignal(false);
   const [currentPath, setCurrentPath] = createSignal<string | null>(null);
-
+  const [duration, setDuration] = createSignal(0);
+  const [currentTime, setCurrentTime] = createSignal(0);       // real backend time
+  const [previewTime, setPreviewTime] = createSignal<number | null>(null); // during drag
   const [isDragging, setIsDragging] = createSignal(false);
-  
-  // Metadata (Usually updated when a new track is loaded)
+
+  // UI-facing time (what the slider should show)
+  const displayTime = createMemo(() => previewTime() ?? currentTime());
+
+  // ── Other UI state ─────────────────────────────────────────────────────
+  const [volume, setVolume] = createSignal([65]);
+  const [isMuted, setIsMuted] = createSignal(false);
+
   const [songTitle, setSongTitle] = createSignal("Song Title");
   const [artistName, setArtistName] = createSignal("Artist Name");
-  const [albumCover, setAlbumCover] = createSignal("https://i.imgur.com/5rqnfP8.png");
-  const [duration, setDuration] = createSignal(0);
-  const [currentTime, setCurrentTime] = createSignal(0);
+  const [albumCover, setAlbumCover] = createSignal(
+    "https://i.imgur.com/5rqnfP8.png"
+  );
 
-  // --- Logic Helpers ---
+  // ── Versioning to prevent stale position updates after seek ────────────
+  let localVersion = 0;
 
-  // Converts 0-100 UI value to 0.0-1.0 Rust f32
-  const normalizeVolume = (val: number) => val / 100;
+  // ── Backend position listener ──────────────────────────────────────────
+  const setupListener = async () => {
+    const unlisten = await listen<[number, number]>('audio_position', (event) => {
+      const [pos, incomingVersion] = event.payload;
 
-  // --- Actions ---
+      // Only accept this update if:
+      // 1. We're not currently dragging
+      // 2. This is not an old/stale update from before our last seek
+      if (!isDragging() && incomingVersion >= localVersion) {
+        setCurrentTime(pos);
+        localVersion = incomingVersion;
+      }
+    });
+
+    onCleanup(() => unlisten());
+  };
+
+  setupListener();
+
+  // ── Actions ─────────────────────────────────────────────────────────────
 
   const togglePlay = async () => {
-    // If we have nothing loaded, we can't play/resume
     if (!currentPath()) return;
+    const shouldPlay = !isPlaying();
 
-    const currentlyPaused = !isPlaying();
-    
     try {
-      if (currentlyPaused) {
-        // Rust command: pub fn resume(...)
+      if (shouldPlay) {
         await invoke('resume');
-        setIsPlaying(true);
       } else {
-        // Rust command: pub fn pause(...)
         await invoke('pause');
-        setIsPlaying(false);
       }
+      setIsPlaying(shouldPlay);
     } catch (e) {
-      console.error("Playback toggle failed", e);
+      console.error("Playback toggle failed:", e);
     }
   };
 
-  /**
-   * Call this when a user clicks a song in a list
-   * Rust command: pub fn play_track(path: String, ...)
-   */
-    const loadAndPlay = async (path: string, title: string, artist: string) => {
+  const loadAndPlay = async (path: string, title: string, artist: string) => {
     try {
-      // Adding <number> here tells TS that the Rust Result<f64, String> 
-      // will arrive as a TypeScript number
       const realDuration = await invoke<number>('play_track', { path });
-      
+
+      // Reset sync state for new track
+      localVersion = 0;
+      setPreviewTime(null);
+
       setCurrentPath(path);
       setSongTitle(title || "Unknown");
       setArtistName(artist || "");
-      
-      // Now realDuration is typed as 'number', so this won't error
-      setDuration(realDuration); 
-      
+      setDuration(realDuration);
       setCurrentTime(0);
       setIsPlaying(true);
     } catch (e) {
@@ -73,101 +86,98 @@ function createPlayerStore() {
   const setVolumeLevel = async (val: number[]) => {
     setVolume(val);
     const numericVolume = val[0];
-    
+
     if (numericVolume > 0) setIsMuted(false);
-    
-    // Rust command: pub fn set_volume(volume: f32, ...)
-    await invoke('set_volume', { volume: normalizeVolume(numericVolume) });
+
+    await invoke('set_volume', { volume: numericVolume / 100 });
   };
 
   const toggleMute = async () => {
-    const prevVolume = volume()[0];
+    const currentVol = volume()[0];
     if (!isMuted()) {
-      // Muting
       setIsMuted(true);
       await invoke('set_volume', { volume: 0.0 });
     } else {
-      // Unmuting
       setIsMuted(false);
-      await invoke('set_volume', { volume: normalizeVolume(prevVolume) });
+      await invoke('set_volume', { volume: currentVol / 100 });
     }
   };
 
-  // DUMMY FUNCTION
   const skip = async (direction: 'next' | 'prev') => {
-    console.log(`Skipping ${direction}...`);
-
     try {
-      // 1. Tell Rust to stop the current audio
       await invoke('stop_track');
-
-      // 2. Dummy Logic: Update UI with placeholder "Next" data
-      // In a real app, you'd fetch the next song from a list/database
-      const dummyTrack = direction === 'next' 
-        ? { title: "Next Track", artist: "Future Artist", path: "dummy_path_next" }
-        : { title: "Previous Track", artist: "Past Artist", path: "dummy_path_prev" };
-
-      setSongTitle(dummyTrack.title);
-      setArtistName(dummyTrack.artist);
-      setCurrentTime(0);
-      
-      // We set isPlaying to false because stop_track clears the sink
+      // TODO: implement actual next/prev track selection logic
       setIsPlaying(false);
-
-      // Note: We don't call play_track here because the 'path' is fake,
-      // but this allows your UI to reflect that a skip happened.
-      
+      setCurrentTime(0);
+      setPreviewTime(null);
     } catch (e) {
-      console.error("Skip failed", e);
+      console.error("Skip failed:", e);
     }
   };
 
-   const previewSeek = (seconds: number) => {
-      setCurrentTime(seconds);
+  // Called continuously during drag (live preview)
+  const previewSeek = (seconds: number) => {
+    setPreviewTime(seconds);
   };
 
-  const seek = async (seconds: number) => {
-    // Optional guard (can be removed if seek doesn't need currentPath anymore)
+  // Called when user releases the slider (commit)
+  const commitSeek = async (seconds: number) => {
     if (!currentPath()) return;
 
-    // Optimistic UI update
-    setCurrentTime(seconds);
+    setPreviewTime(null); // stop preview → show real time again
+    setIsDragging(false);
+
+    // Immediately increment version so stale backend messages are ignored
+    localVersion++;
+    setCurrentTime(seconds); // optimistic UI update
 
     try {
-      // Modern version – no path anymore!
       await invoke("seek_track", { seconds });
     } catch (err) {
       console.error("Seek failed:", err);
-      // You could revert here if you want:
-      // const realPos = await invoke<number>('get_position');
-      // setCurrentTime(realPos);
+      // Optional: could revert currentTime here if you want to be strict
     }
-  }
-
-
-  // Pause polling during drag to prevent fighting with preview
-  const startPositionPolling = () => {
-    const interval = setInterval(async () => {
-      // Skip update when user is dragging the slider
-      if (!isPlaying() || isDragging()) return;
-
-      try {
-        const pos = await invoke<number>('get_position');
-        setCurrentTime(pos);
-      } catch (e) {
-        console.error("Position fetch failed", e);
-      }
-    }, 400); // ← 400ms is usually a good compromise
-
-    onCleanup(() => clearInterval(interval));
   };
 
-  startPositionPolling();
+  // For programmatic seeking (keyboard, buttons, etc) — no preview needed
+  const seek = async (seconds: number) => {
+    if (!currentPath()) return;
+
+    localVersion++;
+    setCurrentTime(seconds);
+    setPreviewTime(null);
+
+    try {
+      await invoke("seek_track", { seconds });
+    } catch (err) {
+      console.error("Programmatic seek failed:", err);
+    }
+  };
 
   return {
-    isPlaying, volume, isMuted, songTitle, artistName, 
-    albumCover, duration, currentTime,
-    togglePlay, setVolumeLevel, toggleMute, seek, previewSeek, loadAndPlay, skip, currentPath, isDragging, setIsDragging,
+    // State
+    isPlaying,
+    volume,
+    isMuted,
+    songTitle,
+    artistName,
+    albumCover,
+    duration,
+    currentTime,       // real backend time
+    displayTime,       // ← what you should bind your slider to!
+    currentPath,
+    isDragging,
+
+    // Actions
+    setIsDragging,
+    togglePlay,
+    setVolumeLevel,
+    toggleMute,
+    previewSeek,
+    commitSeek,
+    seek,
+    loadAndPlay,
+    skip
   };
 }
 

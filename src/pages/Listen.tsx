@@ -4,7 +4,7 @@ export default function Library() {
   const { loadAndPlay, currentPath } = playerStore;
 
   const mySongs = [
-    { id: 1, title: "Rap", artist: "uma", path: "C:/Users/aface/Desktop/songs/Helios.wav" },
+    { id: 1, title: "Rap", artist: "uma", path: "C:/Users/aface/Desktop/songs/Helios.mp3" },
     { id: 2, title: "Starboy", artist: "The Weeknd", path: "/path/to/song2.mp3" },
   ];
 

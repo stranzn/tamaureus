@@ -4,11 +4,17 @@ import Controls from './player_components/controls';
 import Volume from './player_components/volume';
 
 export default function Player() {
-  // Destructure for easier usage
   const { 
     isPlaying, volume, isMuted, 
-    songTitle, artistName, albumCover, duration, currentTime,
-    togglePlay, setVolumeLevel, toggleMute, seek, skip, loadAndPlay, previewSeek, setIsDragging,
+    songTitle, artistName, albumCover, 
+    duration, 
+    // currentTime,           ← remove this from destructuring
+    displayTime,             // ← add this!
+    
+    togglePlay, setVolumeLevel, toggleMute, 
+    seek, skip, loadAndPlay, 
+    previewSeek, commitSeek, // ← add commitSeek!
+    setIsDragging,
   } = playerStore;
 
   return (
@@ -22,16 +28,23 @@ export default function Player() {
           artist={artistName()} 
         />
 
-        {/* Middle */}
+        {/* Middle - main change is here */}
         <Controls 
           isPlaying={isPlaying()}
-          currentTime={currentTime()}
+          // currentTime={currentTime()}     ← remove / replace
+          currentTime={displayTime()}       // ← use displayTime instead!
           duration={duration()}
+          
           onPlayPause={togglePlay}
-          onPreviewSeek={previewSeek}           // ← required for live preview
-          onSeek={seek}
+          onPreviewSeek={previewSeek}       // during drag
+          onSeek={commitSeek}               // ← changed! use commitSeek on release
+          
           onStartDrag={() => setIsDragging(true)}
-          onEndDrag={() => setIsDragging(false)}
+          onEndDrag={() => {
+            setIsDragging(false);
+            // Some people also call commitSeek(displayTime()) here as safety net
+          }}
+          
           onPrev={() => skip('prev')}
           onNext={() => skip('next')}
         />

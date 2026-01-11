@@ -5,10 +5,12 @@ mod user_config;
 mod player;
 
 use sqlx::{sqlite::SqlitePoolOptions};
-use tauri::Manager;
 use std::time::Duration;
 use tauri::Emitter;
-use crate::models::AudioPlayer;
+use crate::player::{AudioPlayer, PlaybackState};
+use tauri::{AppHandle, Manager};
+
+// use crate::models::AudioPlayer;
 
 
 
@@ -48,7 +50,8 @@ pub fn run() {
 
             app.manage(models::AppState { db: pool });
 
-            let audio_player = models::AudioPlayer::new();
+            // Manage audio player
+            let audio_player = AudioPlayer::new(app.handle().clone());
             app.manage(audio_player);
 
             Ok(())
