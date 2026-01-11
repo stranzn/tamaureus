@@ -1,4 +1,4 @@
-use rodio::{Decoder, Sink, Source};
+use rodio::{Sink, Source};
 use std::fs::File;
 use std::io::BufReader;
 use std::sync::mpsc::{channel, Sender};
@@ -10,7 +10,7 @@ use tauri::{AppHandle, Emitter, State};
 // Global atomic to track playback "generations"
 static SEEK_VERSION: AtomicU32 = AtomicU32::new(0);
 
-enum AudioCommand {
+pub enum AudioCommand {
     Play(String, Sender<Result<f64, String>>),
     Pause,
     Resume,
@@ -49,7 +49,6 @@ fn start_audio_thread(app_handle: AppHandle) -> Sender<AudioCommand> {
                             let file = File::open(&path)
                                 .map_err(|e| format!("Failed to open file: {}", e))?;
 
-                            // ── New improved way (recommended with Symphonia) ──
                             let reader = BufReader::new(file);
                             let file_len = reader.get_ref().metadata().ok().map(|m| m.len()); // optional but helpful
 

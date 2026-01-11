@@ -8,12 +8,11 @@ export default function Player() {
     isPlaying, volume, isMuted, 
     songTitle, artistName, albumCover, 
     duration, 
-    // currentTime,           ← remove this from destructuring
-    displayTime,             // ← add this!
+    displayTime,
     
     togglePlay, setVolumeLevel, toggleMute, 
     seek, skip, loadAndPlay, 
-    previewSeek, commitSeek, // ← add commitSeek!
+    previewSeek, commitSeek,
     setIsDragging,
   } = playerStore;
 
@@ -28,21 +27,19 @@ export default function Player() {
           artist={artistName()} 
         />
 
-        {/* Middle - main change is here */}
+        {/* Middle */}
         <Controls 
           isPlaying={isPlaying()}
-          // currentTime={currentTime()}     ← remove / replace
-          currentTime={displayTime()}       // ← use displayTime instead!
+          currentTime={displayTime()}
           duration={duration()}
           
           onPlayPause={togglePlay}
-          onPreviewSeek={previewSeek}       // during drag
-          onSeek={commitSeek}               // ← changed! use commitSeek on release
+          onPreviewSeek={previewSeek}
+          onSeek={commitSeek}
           
           onStartDrag={() => setIsDragging(true)}
           onEndDrag={() => {
             setIsDragging(false);
-            // Some people also call commitSeek(displayTime()) here as safety net
           }}
           
           onPrev={() => skip('prev')}

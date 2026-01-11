@@ -21,13 +21,13 @@ function createPlayerStore() {
   const [songTitle, setSongTitle] = createSignal("Song Title");
   const [artistName, setArtistName] = createSignal("Artist Name");
   const [albumCover, setAlbumCover] = createSignal(
-    "https://i.imgur.com/5rqnfP8.png"
+    "https://media.tenor.com/ifD1GaekwpoAAAAi/uma-musume-agnes-tachyon.gif"
   );
 
-  // ── Versioning to prevent stale position updates after seek ────────────
+  // Versioning to prevent stale position updates after seek 
   let localVersion = 0;
 
-  // ── Backend position listener ──────────────────────────────────────────
+  // Backend position listener
   const setupListener = async () => {
     const unlisten = await listen<[number, number]>('audio_position', (event) => {
       const [pos, incomingVersion] = event.payload;
@@ -129,13 +129,12 @@ function createPlayerStore() {
 
     // Immediately increment version so stale backend messages are ignored
     localVersion++;
-    setCurrentTime(seconds); // optimistic UI update
+    setCurrentTime(seconds);
 
     try {
       await invoke("seek_track", { seconds });
     } catch (err) {
       console.error("Seek failed:", err);
-      // Optional: could revert currentTime here if you want to be strict
     }
   };
 
@@ -164,7 +163,7 @@ function createPlayerStore() {
     albumCover,
     duration,
     currentTime,       // real backend time
-    displayTime,       // ← what you should bind your slider to!
+    displayTime,       // UI-facing time
     currentPath,
     isDragging,
 

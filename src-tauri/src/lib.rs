@@ -1,17 +1,11 @@
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 mod db;
 mod models;
 mod user_config;
 mod player;
 
 use sqlx::{sqlite::SqlitePoolOptions};
-use std::time::Duration;
-use tauri::Emitter;
-use crate::player::{AudioPlayer, PlaybackState};
-use tauri::{AppHandle, Manager};
-
-// use crate::models::AudioPlayer;
-
+use crate::player::{AudioPlayer};
+use tauri::{Manager};
 
 
 fn get_db_path(app: &tauri::AppHandle) -> String {

@@ -4,7 +4,7 @@ import { Slider } from '@kobalte/core';
 
 interface ControlsProps {
   isPlaying: boolean;
-  currentTime: number;       // now receives displayTime() from parent
+  currentTime: number;                      // now receives displayTime() from parent
   duration: number;
   onPlayPause: () => void;
   onPreviewSeek: (value: number) => void;
@@ -46,26 +46,25 @@ const Controls: Component<ControlsProps> = (props) => {
           step={0.1}
           disabled={props.duration <= 0}
           
-          // ── Drag start ───────────────────────────────────────
+          // Drag start
           onPointerDown={() => {
             setIsInternalDragging(true);
             props.onStartDrag?.();
           }}
           
-          // ── Live preview during drag ─────────────────────────
+          // Live preview during drag
           onChange={(val: number[]) => {
             const newValue = val[0];
             setLocalValue(newValue);
             props.onPreviewSeek(newValue);
           }}
           
-          // ── Drag end / release ───────────────────────────────
+          // Drag end/release
           onChangeEnd={(val: number[]) => {
             const finalValue = val[0];
             props.onSeek(finalValue);               // this calls commitSeek
             setIsInternalDragging(false);
             props.onEndDrag?.();
-            // Optional safety: force sync after commit
             setTimeout(() => setLocalValue(props.currentTime), 50);
           }}
           
