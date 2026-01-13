@@ -66,6 +66,9 @@ pub fn run() {
             // user config functions
             user_config::save_music_dir, 
             user_config::load_music_dir,
+            // util functions
+            utils::move_file_to_dir,
+            utils::extract_track_data,
             // player functions 
             player::play_track,
             player::pause,
