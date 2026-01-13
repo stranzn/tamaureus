@@ -1,10 +1,39 @@
 import { Menu, Search, Plus } from "lucide-solid";
+import { musicUpload } from "../components/modals/music_upload";
+import { open } from "@tauri-apps/plugin-dialog";
 
 export default function Library() {
   // Im assuming that I will get a list of and playlists from the database
   // hopefully playlists and songs will be formatted in json
 
   //
+  const { Modal, openModal} = musicUpload();
+
+  async function selectAudioFiles() {
+    const selected = await open({
+      // Allow multiple selection if needed
+      multiple: false, 
+      // Title for the dialog (Desktop only)
+      title: 'Select Music Tracks', 
+      filters: [
+        {
+          name: 'Audio Files',
+          // Define common audio extensions
+          extensions: ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac']
+        }
+      ]
+    });
+
+    if (selected === null) {
+      console.log('User cancelled the selection');
+    } else {
+      // selected will be a string (single) or string[] (multiple)
+      console.log('Selected file(s):', selected);
+      openModal();
+    }
+
+  }
+
 
   return (
     <main>
@@ -44,12 +73,15 @@ export default function Library() {
 
       {/* ADD SONG BUTTON */}
       <div class="mt-8 flex flex-col items-center w-fit">
-        <div class="w-32 h-32 border-2 border-dashed border-[var(--color-secondary)] rounded-md flex items-center justify-center cursor-pointer hover:border-[var(--color-primary)] transition-colors duration-300">
-          <Plus
-            size={43}
-            class="text-gray-400 hover:text-[var(--color-primary)] transition-colors duration-300"
-          />
-        </div>
+        <button onclick={selectAudioFiles}>
+          <div class="w-32 h-32 border-2 border-dashed border-[var(--color-secondary)] rounded-md flex items-center justify-center cursor-pointer hover:border-[var(--color-primary)] transition-colors duration-300">
+            <Plus
+              size={43}
+              class="text-gray-400 hover:text-[var(--color-primary)] transition-colors duration-300"
+            />
+          </div>
+        </button>
+        <Modal />
 
         <p class="text-gray-500 mt-2 text-center">Add New Song</p>
       </div>
