@@ -1,4 +1,3 @@
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 mod db;
 mod models;
 mod user_config;
@@ -6,8 +5,8 @@ mod player;
 mod utils;
 
 use sqlx::{sqlite::SqlitePoolOptions};
-use tauri::Manager;
-
+use crate::player::{AudioPlayer};
+use tauri::{Manager};
 
 
 fn get_db_path(app: &tauri::AppHandle) -> String {
@@ -24,6 +23,7 @@ fn get_db_path(app: &tauri::AppHandle) -> String {
 
     format!("sqlite://{}?mode=rwc", path.display())
 }
+
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -45,7 +45,8 @@ pub fn run() {
 
             app.manage(models::AppState { db: pool });
 
-            let audio_player = models::AudioPlayer::new();
+            // Manage audio player
+            let audio_player = AudioPlayer::new(app.handle().clone());
             app.manage(audio_player);
 
             Ok(())
@@ -71,7 +72,9 @@ pub fn run() {
             player::resume,
             player::stop_track,
             player::set_volume,
-            player::get_playback_state])
+            player::get_playback_state,
+            player::seek_track,
+            player::get_position])
         .run(tauri::generate_context!())
         .expect("error running tauri application");
 }
