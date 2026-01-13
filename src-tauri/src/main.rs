@@ -5,6 +5,7 @@ mod db;
 mod models;
 mod user_config;
 mod player;
+mod utils;
 
 fn main() {
     tamaureus_lib::run()

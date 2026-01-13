@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS albums (
 );
 
 CREATE TABLE IF NOT EXISTS tracks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,   
     file_path TEXT NOT NULL UNIQUE,
     title TEXT NOT NULL,
     artist_id INTEGER NOT NULL,
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS tracks (
     duration_ms INTEGER NOT NULL,
     file_format TEXT NOT NULL,
     file_size INTEGER NOT NULL,
-    date_added INTEGER NOT NULl,
+    date_added INTEGER NOT NULL,
     FOREIGN KEY (artist_id) REFERENCES artists(id),
     FOREIGN KEY (album_id) REFERENCES albums(id)
 );
