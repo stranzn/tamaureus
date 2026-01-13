@@ -1,6 +1,8 @@
 import { Menu, Search, Plus } from "lucide-solid";
 import { musicUpload } from "../components/modals/music_upload";
 import { open } from "@tauri-apps/plugin-dialog";
+import { createSignal } from "solid-js";
+import { invoke } from '@tauri-apps/api/core';
 
 export default function Library() {
   // Im assuming that I will get a list of and playlists from the database
@@ -9,8 +11,14 @@ export default function Library() {
   //
   const { Modal, openModal} = musicUpload();
 
+  
+  const [currentDirectory, setCurrentDirectory] = createSignal();
+
+  // Meta data variables
+
+
   async function selectAudioFiles() {
-    const selected = await open({
+    const src_path = await open({
       // Allow multiple selection if needed
       multiple: false, 
       // Title for the dialog (Desktop only)
@@ -24,11 +32,23 @@ export default function Library() {
       ]
     });
 
-    if (selected === null) {
+    if (src_path === null) {
       console.log('User cancelled the selection');
     } else {
       // selected will be a string (single) or string[] (multiple)
-      console.log('Selected file(s):', selected);
+      console.log('Selected file(s):', src_path);
+      setCurrentDirectory(src_path);
+      
+      try {
+        // 1. Save to Rust backend
+        const metadata = await invoke("extract_track_data", { src_path });
+
+        console.log(metadata);
+
+      } catch (err) {
+        console.error("Save error:", err);
+      }
+      
       openModal();
     }
 
