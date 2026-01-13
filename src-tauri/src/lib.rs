@@ -51,10 +51,21 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            // db::get_artists, 
-            // db::add_artist, 
+            // database functions
+            db::get_artists,
+            db::get_artist,
+            db::add_artist,
+            db::remove_artist,
+            db::artist_exists,
+            db::get_albums,
+            db::get_album,
+            db::add_album,
+            db::remove_album,
+            db::album_exists,
+            // user config functions
             user_config::save_music_dir, 
-            user_config::load_music_dir, 
+            user_config::load_music_dir,
+            // player functions 
             player::play_track,
             player::pause,
             player::resume,
