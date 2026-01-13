@@ -2,6 +2,14 @@ import { createSignal, createMemo, createRoot, onCleanup } from 'solid-js';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 
+/*
+  Features left to do:
+  - Add skiping to next/previous track functionality
+  - Handle end of track (auto play next?)
+  - I think I probably should add the ability to repeat and shuffle tracks
+*/
+
+
 function createPlayerStore() {
   // ── Core playback state ────────────────────────────────────────────────
   const [isPlaying, setIsPlaying] = createSignal(false);
