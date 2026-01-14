@@ -101,7 +101,15 @@ export default function Library() {
             />
           </div>
         </button>
-        <Modal />
+        <Modal 
+            title="Cry For Me"
+            artist="Iron Mouse"
+            album="Cry For Me"
+            fileFormat="MP3"
+            fileSize="6.09 MB"
+            duration="2:38"
+            dateAdded="2024-12-01"
+          />
 
         <p class="text-gray-500 mt-2 text-center">Add New Song</p>
       </div>
