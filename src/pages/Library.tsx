@@ -15,7 +15,28 @@ export default function Library() {
   const [currentDirectory, setCurrentDirectory] = createSignal();
 
   // Meta data variables
+  const [title, setTitle] = createSignal<string>("");
+  const [artist, setArtist] = createSignal<string>("");
+  const [album, setAlbum] = createSignal<string>("");
+  const [fileFormat, setFileFormat] = createSignal<string>("");
+  const [fileSize, setFileSize] = createSignal<number>(0);
+  const [duration, setDuration] = createSignal<number>(0);
+  const [dateAdded, setDateAdded] = createSignal<number>(0);
+  const [thumbnailBase64, setThumbnailBase64] = createSignal<string>("");
+  const [thumbnailMimeType, setThumbnailMimeType] = createSignal("");
 
+
+  interface ModalProps {
+    title: string;
+    artist: string;
+    album: string;
+    file_format: string;
+    file_size: number;
+    duration_ms: number;
+    date_added: number;
+    thumbnail_base64: string;
+    thumbnail_mime: string;
+  }
 
   async function selectAudioFiles() {
     const srcPath = await open({
@@ -41,9 +62,20 @@ export default function Library() {
       
       try {
         // 1. Save to Rust backend
-        const metadata = await invoke("get_track_metadata", { path: srcPath });
+        const metadata = await invoke<ModalProps>("get_track_metadata", { path: srcPath });
 
-        console.log(metadata);
+        console.log("Metadata received from Rust:", metadata);
+
+        // Setting metadata signals
+        setTitle(metadata.title);
+        setArtist(metadata.artist);
+        setAlbum(metadata.album);
+        setFileFormat(metadata.file_format);
+        setFileSize(metadata.file_size);
+        setDuration(metadata.duration_ms);
+        setDateAdded(metadata.date_added);
+        setThumbnailBase64(metadata.thumbnail_base64);
+        setThumbnailMimeType(metadata.thumbnail_mime);
 
       } catch (err) {
         console.error("Save error:", err);
@@ -102,13 +134,15 @@ export default function Library() {
           </div>
         </button>
         <Modal 
-            title="Cry For Me"
-            artist="Iron Mouse"
-            album="Cry For Me"
-            fileFormat="MP3"
-            fileSize="6.09 MB"
-            duration="2:38"
-            dateAdded="2024-12-01"
+            title={title()}
+            artist={artist()}
+            album={album()}
+            fileFormat={fileFormat()}
+            fileSize={fileSize()}
+            durationMs={duration()}
+            dateAdded={dateAdded()}
+            thumbnailBase64={thumbnailBase64()}
+            thumbnailMime={thumbnailMimeType()}
           />
 
         <p class="text-gray-500 mt-2 text-center">Add New Song</p>

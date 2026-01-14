@@ -4,14 +4,16 @@ import { Component, createSignal, Show, onCleanup } from "solid-js";
 import ColorThief from "colorthief";
 
 interface ModalProps {
-  title?: string;
-  artist?: string;
-  album?: string;
-  fileFormat?: string;
-  fileSize?: string;
-  duration?: string;
-  dateAdded?: string;
-}
+    title: string;
+    artist: string;
+    album: string;
+    fileFormat: string;
+    fileSize: number;
+    durationMs: number;
+    dateAdded: number;
+    thumbnailBase64: string;
+    thumbnailMime: string;
+  }
 
 export function musicUpload() {
   const [open, setOpen] = createSignal(false);
@@ -109,7 +111,7 @@ export function musicUpload() {
                     <span>Size</span><span class="text-content">{props.fileSize || "unknown"}</span>
                   </div>
                   <div class="flex justify-between border-b border-muted pb-2">
-                    <span>Length</span><span class="text-content">{props.duration || "-:--"}</span>
+                    <span>Length</span><span class="text-content">{props.durationMs || "-:--"}</span>
                   </div>
                   <div class="flex justify-between">
                     <span>Format</span><span class="text-content">{props.fileFormat || "unknown"}</span>
