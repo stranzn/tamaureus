@@ -1,3 +1,5 @@
+pub mod tag_reader;
+
 use base64::{engine::general_purpose, Engine as _};
 use chrono::Local;
 use std::fs::File;

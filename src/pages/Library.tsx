@@ -18,7 +18,7 @@ export default function Library() {
 
 
   async function selectAudioFiles() {
-    const src_path = await open({
+    const srcPath = await open({
       // Allow multiple selection if needed
       multiple: false, 
       // Title for the dialog (Desktop only)
@@ -32,16 +32,16 @@ export default function Library() {
       ]
     });
 
-    if (src_path === null) {
+    if (srcPath === null) {
       console.log('User cancelled the selection');
     } else {
       // selected will be a string (single) or string[] (multiple)
-      console.log('Selected file(s):', src_path);
-      setCurrentDirectory(src_path);
+      console.log('Selected file(s):', srcPath);
+      setCurrentDirectory(srcPath);
       
       try {
         // 1. Save to Rust backend
-        const metadata = await invoke("extract_track_data", { src_path });
+        const metadata = await invoke("get_track_metadata", { path: srcPath });
 
         console.log(metadata);
 
