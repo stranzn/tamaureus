@@ -16,14 +16,16 @@
 
 /* Dark theme */
 .dark {
-  --color-primary: #d1d5db;
-  --color-secondary: #9ca3af;
-  --color-tertiary: #6b7280;
-  --color-surface: #202124;
-  --color-background: #121212;
-  --color-accent: #e5e7eb;
-  --color-muted: #2f3136;
-  --color-content: #f3f4f6;
+  --color-primary: #f4f4f5;     /* zinc-100: High emphasis text */
+  --color-secondary: #a1a1aa;   /* zinc-400: Medium emphasis text */
+  --color-tertiary: #52525b;    /* zinc-600: Low emphasis / Icons */
+  
+  --color-surface: #202023;     /* The Sidebar/Left Column */
+  --color-background: #18181b;  /* The Main/Right Column */
+  
+  --color-accent: #e4e4e7;      /* zinc-200: Focus rings/Active states */
+  --color-muted: #27272a;       /* zinc-800: Borders & Separators */
+  --color-content: #fafafa;     /* zinc-50: Main text */
 }
 
 /* Midnight Theme */
