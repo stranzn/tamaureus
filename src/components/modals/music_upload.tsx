@@ -108,13 +108,13 @@ export function musicUpload() {
 
                 <div class="relative z-10 space-y-2 text-xs font-medium text-secondary">
                   <div class="flex justify-between border-b border-muted pb-2">
-                    <span>Size</span><span class="text-content">{props.fileSize || "unknown"}</span>
+                    <span>Size</span><span class="text-content">{props.fileSize + " MB"|| "unknown"}</span>
                   </div>
                   <div class="flex justify-between border-b border-muted pb-2">
                     <span>Length</span><span class="text-content">{props.durationMs || "-:--"}</span>
                   </div>
                   <div class="flex justify-between">
-                    <span>Format</span><span class="text-content">{props.fileFormat || "unknown"}</span>
+                    <span>Format</span><span class="text-content">{props.fileFormat.toUpperCase() || "unknown"}</span>
                   </div>
                 </div>
               </div>

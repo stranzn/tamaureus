@@ -15,6 +15,7 @@ pub fn extract_track_metadata(path: &str) -> Result<ExtractedTrack, String> {
         .map_err(|e| format!("Cannot read file metadata {}", e))?;
     let file_size_bytes = metadata.len();
     let file_size_mb = file_size_bytes as f64 / 1_048_576.0; // convert to mb
+    let file_size_mb = (file_size_mb * 100.0).round() / 100.0;
 
     // probe and read file
     let tagged_file = Probe::open(path)
@@ -66,7 +67,7 @@ pub fn extract_track_metadata(path: &str) -> Result<ExtractedTrack, String> {
         album,
         duration_ms,
         file_format: path.extension().and_then(|e| e.to_str()).map(|s| s.to_lowercase()).unwrap_or_else(|| "unknown".to_string()),
-        file_size: file_size_mb as i64,
+        file_size: file_size_mb as f64,
         date_added,
         thumbnail_base64,
         thumbnail_mime,
