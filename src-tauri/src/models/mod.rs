@@ -14,6 +14,7 @@ pub struct Album {
     pub cover_path: Option<String>
 }
 
+#[derive(Debug, Clone, FromRow, serde::Serialize, serde::Deserialize)]
 pub struct Track {
     pub id: i64,
     pub file_path: String,
@@ -23,7 +24,11 @@ pub struct Track {
     pub duration_ms: i64,
     pub file_format: String, // ex. "mp3"
     pub file_size: i64,
-    pub date_added: i64 // ex. 20260112
+    pub date_added: Option<i64>, // ex. 20260112
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub thumbnail_base64: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub thumbnail_mime: Option<String>,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -35,7 +40,7 @@ pub struct ExtractedTrack {
     pub duration_ms: i64,
     pub file_format: String, // ex. "mp3"
     pub file_size: f64,
-    pub date_added: i64, // ex. 20260112
+    pub date_added: Option<i64>, // ex. 20260112
     #[serde(skip_serializing_if = "Option::is_none")]
     pub thumbnail_base64: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

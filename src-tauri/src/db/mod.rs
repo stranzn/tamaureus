@@ -1,5 +1,7 @@
-use crate::models::{Album, AppState as Database, Artist, Track};
 
+use crate::{models::{Album, AppState as Database, Artist, ExtractedTrack, Track}, utils::current_date_as_int};
+
+#[allow(dead_code)]
 impl Database {
     // artist queries
     pub async fn get_artists(&self) -> Result<Vec<Artist>, String> {
@@ -55,6 +57,36 @@ impl Database {
             .map_err(|e| format!("Database error: {}", e))?;
 
         Ok(count.0 > 0)
+    }
+
+    pub async fn find_or_create_artist(&self, name: &str) -> Result<i64, String> {
+        let trimmed = name.trim();
+        if trimmed.is_empty() {
+            return Err("Artist name cannot be empty".to_string());
+        }
+
+        // Try to find
+        if let Some(id) = sqlx::query_scalar!(
+            "SELECT id FROM artists WHERE name = ? COLLATE NOCASE",
+            trimmed
+        )
+        .fetch_one(&self.db)
+        .await
+        .map_err(|e| format!("Artist lookup failed: {}", e))?
+        {
+            return Ok(id);
+        }
+
+        // Create new
+        let id = sqlx::query_scalar!(
+            "INSERT INTO artists (name) VALUES (?) RETURNING id",
+            trimmed
+        )
+        .fetch_one(&self.db)
+        .await
+        .map_err(|e| format!("Artist creation failed: {}", e))?;
+
+        Ok(id)
     }
 
     // album queries
@@ -115,6 +147,7 @@ impl Database {
         Ok(())
     }
 
+    // checks for artist_id because album titles are not unique
     pub async fn album_exists(&self, title: &str, artist_id: i64) -> Result<bool, String> {
         let count: (i64,) =
             sqlx::query_as("SELECT COUNT(*) FROM albums WHERE title = ? AND artist_id = ?")
@@ -126,12 +159,92 @@ impl Database {
         Ok(count.0 > 0)
     }
 
+    pub async fn find_or_create_album(&self, title: &str, artist_id: i64) -> Result<i64, String> {
+        let trimmed = title.trim();
+        if trimmed.is_empty() {
+            return Err("Album title cannot be empty".to_string());
+        }
+
+        // Find existing album by title + artist
+        if let Some(id) = sqlx::query_scalar!(
+            "SELECT id FROM albums WHERE title = ? AND artist_id = ?",
+            trimmed,
+            artist_id
+        )
+        .fetch_optional(&self.db)
+        .await
+        .map_err(|e| format!("Album lookup failed: {}", e))?
+        {
+            return Ok(id);
+        }
+
+        // Create new
+        let id = sqlx::query_scalar!(
+            "INSERT INTO albums (title, artist_id) VALUES (?, ?) RETURNING id",
+            trimmed,
+            artist_id
+        )
+        .fetch_one(&self.db)
+        .await
+        .map_err(|e| format!("Album creation failed: {}", e))?
+        .ok_or_else(|| "Failed to get inserted album ID".to_string())?;
+
+        Ok(id)
+    }
+
     // track queries
 
     // TODO: implement functions for tracks
 
-    // pub async fn get_tracks();
-    // pub async fn add_track();
+    pub async fn get_tracks(&self) -> Result<Vec<Track>, String> {
+        sqlx::query_as::<_, Track>("SELECT id, file_path, title, artist_id, album_id, duration_ms, file_format, file_size, date_added FROM tracks ORDER BY title")
+            .fetch_all(&self.db)
+            .await
+            .map_err(|e| format!("Database error: {}", e))
+    }
+
+    // opting to have struct as argument here because of the number of properties
+    pub async fn add_track(&self, track: ExtractedTrack) -> Result<i64, String> {
+        let file_path = track.file_path.clone();
+        // check if artist and album already exist
+        let artist_id = self.find_or_create_artist(&track.artist).await?;
+
+        let album_id = self
+            .find_or_create_album(&track.album, artist_id)
+            .await?;
+
+        let result = sqlx::query("INSERT OR IGNORE INTO tracks (file_path, title,
+         artist_id, album_id, duration_ms, file_format, file_size, date_added, thumbnail_base64, thumbnail_mime)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")       // might be None/0 if auto-generated
+        .bind(&file_path)
+        .bind(track.title)
+        .bind(artist_id)
+        .bind(album_id)
+        .bind(track.duration_ms)
+        .bind(track.file_format)
+        .bind(track.file_size)
+        .bind(track.date_added.unwrap_or_else(|| current_date_as_int()))
+        .bind(track.thumbnail_base64.as_deref())
+        .bind(track.thumbnail_mime.as_deref())
+        .execute(&self.db)
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+
+        let inserted_id = result.last_insert_rowid();
+
+        if inserted_id > 0 {
+            return Ok(inserted_id);
+        }
+
+        // Was ignored → fetch existing id
+        let existing_id: i64 = sqlx::query_scalar("SELECT id FROM tracks WHERE file_path = ?")
+            .bind(&file_path)
+            .fetch_one(&self.db)
+            .await
+            .map_err(|e| format!("Failed to find existing track: {}", e))?;
+
+        Ok(existing_id)
+    }
     // pub async fn remove_track();
     // pub async fn track_exists();
 
@@ -141,26 +254,31 @@ impl Database {
 }
 
 // Tauri Commands
+#[allow(dead_code)]
 #[tauri::command]
 pub async fn get_artists(state: tauri::State<'_, Database>) -> Result<Vec<Artist>, String> {
     state.get_artists().await
 }
 
+#[allow(dead_code)]
 #[tauri::command]
 pub async fn get_artist(state: tauri::State<'_, Database>, name: String) -> Result<Artist, String> {
     state.get_artist(name).await
 }
 
+#[allow(dead_code)]
 #[tauri::command]
 pub async fn add_artist(state: tauri::State<'_, Database>, name: String) -> Result<i64, String> {
     state.add_artist(name).await
 }
 
+#[allow(dead_code)]
 #[tauri::command]
 pub async fn remove_artist(state: tauri::State<'_, Database>, id: i64) -> Result<(), String> {
     state.remove_artist(id).await
 }
 
+#[allow(dead_code)]
 #[tauri::command]
 pub async fn artist_exists(
     state: tauri::State<'_, Database>,
@@ -169,16 +287,19 @@ pub async fn artist_exists(
     state.artist_exists(&name).await
 }
 
+#[allow(dead_code)]
 #[tauri::command]
 pub async fn get_albums(state: tauri::State<'_, Database>) -> Result<Vec<Album>, String> {
     state.get_albums().await
 }
 
+#[allow(dead_code)]
 #[tauri::command]
 pub async fn get_album(state: tauri::State<'_, Database>, title: String) -> Result<Album, String> {
     state.get_album(title).await
 }
 
+#[allow(dead_code)]
 #[tauri::command]
 pub async fn add_album(
     state: tauri::State<'_, Database>,
@@ -189,11 +310,13 @@ pub async fn add_album(
     state.add_album(title, artist_id, cover_path).await
 }
 
+#[allow(dead_code)]
 #[tauri::command]
 pub async fn remove_album(state: tauri::State<'_, Database>, id: i64) -> Result<(), String> {
     state.remove_album(id).await
 }
 
+#[allow(dead_code)]
 #[tauri::command]
 pub async fn album_exists(
     state: tauri::State<'_, Database>,
