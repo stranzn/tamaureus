@@ -90,7 +90,7 @@ export default function Library() {
   return (
     <main>
       <div>
-        <p class="text-[var(--color-content)] text-2xl">Library</p>
+        <p class="text-[var(--color-content)] text-2xl font-bold mb-4">Library</p>
       </div>
       <div class="flex flex-row items-center gap-4 mt-5">
         <div class="relative flex-1">

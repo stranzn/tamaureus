@@ -45,6 +45,13 @@ export function musicUpload() {
     return getBrightness() > 128 ? "text-black" : "text-white";
   };
 
+  const formatDuration = (duration : number) => {
+    // duaration in milliseconds
+    const minutes = Math.floor(duration / 60000);
+    const seconds = Math.floor((duration % 60000) / 1000);
+    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+  };
+
   const handleImageLoad = (e: Event) => {
     const img = e.target as HTMLImageElement;
     const colorThief = new ColorThief();
@@ -99,7 +106,7 @@ export function musicUpload() {
                 <div class="relative z-10 aspect-square w-full overflow-hidden rounded-lg shadow-lg shadow-black/50">
                   <img 
                     crossOrigin="anonymous" 
-                    src="https://i.scdn.co/image/ab67616d0000b273053491131955d059d22a97d7"
+                    src={`data:${props.thumbnailMime};base64,${props.thumbnailBase64}`}
                     alt="cover" 
                     onLoad={handleImageLoad}
                     class="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
@@ -111,7 +118,7 @@ export function musicUpload() {
                     <span>Size</span><span class="text-content">{props.fileSize + " MB"|| "unknown"}</span>
                   </div>
                   <div class="flex justify-between border-b border-muted pb-2">
-                    <span>Length</span><span class="text-content">{props.durationMs || "-:--"}</span>
+                    <span>Length</span><span class="text-content">{formatDuration(props.durationMs) || "-:--"}</span>
                   </div>
                   <div class="flex justify-between">
                     <span>Format</span><span class="text-content">{props.fileFormat.toUpperCase() || "unknown"}</span>
