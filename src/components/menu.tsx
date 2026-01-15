@@ -1,13 +1,13 @@
 import { A, useLocation } from "@solidjs/router";
 import { createSignal } from "solid-js";
-import { Home, Headphones, Settings } from "lucide-solid"; // icons
+import { LibraryBig , Headphones, Settings, ChevronLeft, ChevronRight, Menu } from "lucide-solid"; // icons
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = createSignal(false);
   const location = useLocation(); // get current route
 
   const links = [
-    { href: "/", label: "Library", icon: Home },
+    { href: "/", label: "Library", icon: LibraryBig },
     { href: "/listen", label: "Listen", icon: Headphones },
     { href: "/settings", label: "Settings", icon: Settings },
   ];
@@ -27,7 +27,7 @@ export default function Sidebar() {
           onClick={() => setCollapsed(!collapsed())}
           class="p-2 rounded hover:bg-[var(--color-muted)] text-[var(--color-content)]"
         >
-          {collapsed() ? "»" : "«"}
+          {collapsed() ? <Menu size={20} /> : <ChevronLeft size={20} />}
         </button>
       </div>
 
@@ -40,7 +40,7 @@ export default function Sidebar() {
               href={href}
               class={`flex items-center gap-3 px-4 py-3 rounded-md transition-colors
                 ${active
-                  ? "bg-[var(--color-primary)] text-white"
+                  ? "bg-[var(--color-tertiary)] text-white"
                   : "text-[var(--color-content)] hover:bg-[var(--color-muted)]"}`}
             >
               <Icon class="w-5 h-5" />

@@ -4,11 +4,11 @@ import { Slider } from '@kobalte/core';
 
 interface ControlsProps {
   isPlaying: boolean;
-  currentTime: number;                      // now receives displayTime() from parent
+  currentTime: number;
   duration: number;
   onPlayPause: () => void;
   onPreviewSeek: (value: number) => void;
-  onSeek: (value: number) => void;          // now receives commitSeek
+  onSeek: (value: number) => void;
   onPrev?: () => void;
   onNext?: () => void;
   onStartDrag?: () => void;
@@ -19,7 +19,6 @@ const Controls: Component<ControlsProps> = (props) => {
   const [localValue, setLocalValue] = createSignal(props.currentTime);
   const [isInternalDragging, setIsInternalDragging] = createSignal(false);
 
-  // Sync local value with props.currentTime (displayTime) ONLY when not dragging
   createEffect(() => {
     if (!isInternalDragging()) {
       setLocalValue(props.currentTime);
@@ -33,90 +32,79 @@ const Controls: Component<ControlsProps> = (props) => {
   };
 
   return (
-    <div class="flex-1 flex flex-col gap-4">
-      <div class="flex items-center gap-3">
-        <span class="text-xs w-10 text-right tabular-nums text-[var(--color-tertiary)]">
+    <div class="flex flex-col items-center justify-center w-full gap-2">
+      
+      {/* Top Row: Buttons */}
+      <div class="flex items-center justify-center gap-6">
+        <button 
+          onClick={props.onPrev} 
+          class="text-[var(--color-tertiary)] hover:text-[var(--color-content)] transition-colors"
+          aria-label="Previous"
+        >
+          <SkipBack size={20} fill="currentColor" />
+        </button>
+
+        <button
+          onClick={props.onPlayPause}
+          class="flex items-center justify-center w-8 h-8 rounded-full bg-white text-black hover:scale-105 transition-transform"
+          // Note: using explicit white/black for the main button usually looks best, 
+          // but you can revert to your vars if preferred:
+           style={{ 'background-color': 'var(--color-primary)', color: 'var(--color-surface)' }}
+        >
+          {props.isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" class="ml-0.5" />}
+        </button>
+
+        <button 
+          onClick={props.onNext} 
+          class="text-[var(--color-tertiary)] hover:text-[var(--color-content)] transition-colors"
+          aria-label="Next"
+        >
+          <SkipForward size={20} fill="currentColor" />
+        </button>
+      </div>
+
+      {/* Bottom Row: Scrubber */}
+      <div class="flex items-center w-full gap-2 text-xs font-medium text-[var(--color-tertiary)]">
+        <span class="w-10 text-right tabular-nums">
           {formatTime(localValue())}
         </span>
 
         <Slider.Root
           value={[localValue()]}
           minValue={0}
-          maxValue={props.duration || 120}
+          maxValue={props.duration || 1} // Prevent divide by zero issues
           step={0.1}
           disabled={props.duration <= 0}
-          
-          // Drag start
           onPointerDown={() => {
             setIsInternalDragging(true);
             props.onStartDrag?.();
           }}
-          
-          // Live preview during drag
           onChange={(val: number[]) => {
-            const newValue = val[0];
-            setLocalValue(newValue);
-            props.onPreviewSeek(newValue);
+            setLocalValue(val[0]);
+            props.onPreviewSeek(val[0]);
           }}
-          
-          // Drag end/release
           onChangeEnd={(val: number[]) => {
-            const finalValue = val[0];
-            props.onSeek(finalValue);               // this calls commitSeek
+            props.onSeek(val[0]);
             setIsInternalDragging(false);
             props.onEndDrag?.();
             setTimeout(() => setLocalValue(props.currentTime), 50);
           }}
-          
-          class="group relative flex items-center select-none touch-none w-full h-5 cursor-pointer"
+          class="group relative flex items-center select-none touch-none w-full h-4 cursor-pointer"
         >
-          <Slider.Track
-            class="relative grow rounded-full h-1"
-            style={{ 'background-color': 'var(--color-secondary)' }}
-          >
-            <Slider.Fill
-              class="absolute rounded-full h-full"
-              style={{ 'background-color': 'var(--color-primary)' }}
-            />
-            <Slider.Thumb
-              class="block w-3 h-3 rounded-full shadow-md top-1/2 -translate-y-1/2 
-                     bg-[var(--color-primary)] transition-opacity focus:outline-none
-                     opacity-0 group-hover:opacity-100 focus-visible:opacity-100 active:opacity-100"
-              style={{ '--tw-ring-color': 'var(--color-accent)' }}
-            />
+          <Slider.Track class="relative grow rounded-full h-1 overflow-hidden" style={{ 'background-color': 'var(--color-secondary)' }}>
+            <Slider.Fill class="absolute h-full rounded-full group-hover:bg-[var(--color-accent)] transition-colors" style={{ 'background-color': 'var(--color-primary)' }} />
           </Slider.Track>
+          {/* Thumb only visible on hover for that 'clean' look */}
+          <Slider.Thumb 
+            class="block w-3 h-3 rounded-full shadow-md bg-white opacity-0 group-hover:opacity-100 transition-opacity focus:outline-none focus-visible:opacity-100"
+          />
         </Slider.Root>
 
-        <span class="text-xs w-10 tabular-nums text-[var(--color-tertiary)]">
+        <span class="w-10 tabular-nums">
           {formatTime(props.duration)}
         </span>
       </div>
 
-      <div class="flex items-center justify-center gap-4">
-        <button 
-          onClick={props.onPrev} 
-          class="transition-transform duration-150 hover:scale-105" 
-          style={{ color: 'var(--color-accent)' }}
-        >
-          <SkipBack size={20} />
-        </button>
-
-        <button
-          onClick={props.onPlayPause}
-          class="rounded-full p-3 text-white transition-transform duration-150 hover:scale-105"
-          style={{ 'background-color': 'var(--color-primary)' }}
-        >
-          {props.isPlaying ? <Pause size={20} /> : <Play size={20} />}
-        </button>
-
-        <button 
-          onClick={props.onNext} 
-          class="transition-transform duration-150 hover:scale-105" 
-          style={{ color: 'var(--color-accent)' }}
-        >
-          <SkipForward size={20} />
-        </button>
-      </div>
     </div>
   );
 };

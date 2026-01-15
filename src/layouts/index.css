@@ -16,17 +16,26 @@
 
 /* Dark theme */
 .dark {
-  --color-primary: #f4f4f5;     /* zinc-100: High emphasis text */
-  --color-secondary: #a1a1aa;   /* zinc-400: Medium emphasis text */
-  --color-tertiary: #52525b;    /* zinc-600: Low emphasis / Icons */
-  
-  --color-surface: #202023;     /* The Sidebar/Left Column */
-  --color-background: #18181b;  /* The Main/Right Column */
-  
-  --color-accent: #e4e4e7;      /* zinc-200: Focus rings/Active states */
-  --color-muted: #27272a;       /* zinc-800: Borders & Separators */
-  --color-content: #fafafa;     /* zinc-50: Main text */
+  /* Text */
+  --color-primary: #e6e7eb;     /* main titles */
+  --color-secondary: #a1a1aa;   /* artists, metadata */
+  --color-tertiary: #71717a;    /* icons, subtle labels */
+
+  /* Surfaces */
+  --color-background: #151518;  /* main area */
+  --color-surface: #1d1e22;     /* sidebar / panels */
+  --color-card: #24262c;        /* library items */
+
+  /* UI */
+  --color-accent: #c9ccd6;      /* focus, sliders, active icons */
+  --color-muted: #2d2f36;       /* borders, separators */
+
+  /* Body text */
+  --color-content: #d4d6db;
 }
+
+
+
 
 /* Midnight Theme */
 .midnight {
