@@ -289,6 +289,15 @@ pub async fn artist_exists(
 
 #[allow(dead_code)]
 #[tauri::command]
+pub async fn find_or_create_artist(
+    state: tauri::State<'_, Database>,
+    name: &str
+) -> Result<i64, String> {
+    state.find_or_create_artist(name).await
+}
+
+#[allow(dead_code)]
+#[tauri::command]
 pub async fn get_albums(state: tauri::State<'_, Database>) -> Result<Vec<Album>, String> {
     state.get_albums().await
 }
@@ -325,3 +334,26 @@ pub async fn album_exists(
 ) -> Result<bool, String> {
     state.album_exists(&title, artist_id).await
 }
+
+#[allow(dead_code)]
+#[tauri::command]
+pub async fn find_or_create_album(
+    state: tauri::State<'_, Database>,
+    title: &str,
+    artist_id: i64
+) -> Result<i64, String> {
+    state.find_or_create_album(title, artist_id).await
+}
+
+#[allow(dead_code)]
+#[tauri::command]
+pub async fn get_tracks(state: tauri::State<'_, Database>) -> Result<Vec<Track>, String> {
+    state.get_tracks().await
+}
+
+#[allow(dead_code)]
+#[tauri::command]
+pub async fn add_track(state: tauri::State<'_, Database>, track: ExtractedTrack) -> Result<i64, String> {
+    state.add_track(track).await
+}
+
