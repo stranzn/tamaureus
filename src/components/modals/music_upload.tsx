@@ -1,5 +1,5 @@
 import { render, Portal } from "solid-js/web";
-import { Component, createSignal, Show, onCleanup } from "solid-js";
+import { Component, createSignal, Show, onCleanup, createEffect } from "solid-js";
 import {invoke} from "@tauri-apps/api/core";
 
 // @ts-expect-error
@@ -7,6 +7,7 @@ import ColorThief from "colorthief";
 import { save } from "@tauri-apps/plugin-dialog";
 
 interface ModalProps {
+    filePath: string;
     title: string;
     artist: string;
     album: string;
@@ -78,21 +79,33 @@ export function musicUpload() {
     const [artist, setArtist] = createSignal<string>("");
     const [album, setAlbum] = createSignal<string>("");
 
-    setTitle(props.title);
-    setArtist(props.artist);
-    setAlbum(props.album);
+
+    createEffect(() => {
+      setTitle(props.title);
+      setArtist(props.artist);
+      setAlbum(props.album);
+    });
 
 
     const saveTrack = async () => {
       try {
-        props.title = title();
-        props.artist = artist();
-        props.album = album();
+        const payload = {
+          file_path: props.filePath,
+          title: title(),
+          artist: artist(),
+          album: album(),
+          file_format: props.fileFormat,
+          file_size: props.fileSize,
+          duration_ms: props.durationMs,
+          date_added: props.dateAdded,
+          thumbnail_base64: props.thumbnailBase64,
+          thumbnail_mime: props.thumbnailMime,
+        };
 
-        console.log("Saving track with metadata:", props);
+        console.log("Saving track with metadata:", payload);
 
         // Call backend to save track with updated metadata
-        const id = await invoke("add_track", { props});
+        const id = await invoke("add_track", { track: payload });
         
         console.log("Track saved with ID:", id);
 

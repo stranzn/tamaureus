@@ -11,8 +11,9 @@ export default function Library() {
   //
   const { Modal, openModal} = musicUpload();
 
-  
-  const [currentDirectory, setCurrentDirectory] = createSignal();
+
+
+  const [currentPath, setCurrentPath] = createSignal<string>("");
 
   // Meta data variables
   const [title, setTitle] = createSignal<string>("");
@@ -27,6 +28,7 @@ export default function Library() {
 
 
   interface ModalProps {
+    file_path: string;
     title: string;
     artist: string;
     album: string;
@@ -58,7 +60,7 @@ export default function Library() {
     } else {
       // selected will be a string (single) or string[] (multiple)
       console.log('Selected file(s):', srcPath);
-      setCurrentDirectory(srcPath);
+      setCurrentPath(srcPath);
       
       try {
         // 1. Save to Rust backend
@@ -134,6 +136,7 @@ export default function Library() {
           </div>
         </button>
         <Modal 
+            filePath={currentPath()}
             title={title()}
             artist={artist()}
             album={album()}
