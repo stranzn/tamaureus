@@ -6,6 +6,7 @@ use std::path::Path;
 
 use crate::models::ExtractedTrack;
 
+#[allow(dead_code)]
 pub fn extract_track_metadata(path: &str) -> Result<ExtractedTrack, String> {
     let path = Path::new(&path);
 
@@ -68,13 +69,13 @@ pub fn extract_track_metadata(path: &str) -> Result<ExtractedTrack, String> {
         duration_ms,
         file_format: path.extension().and_then(|e| e.to_str()).map(|s| s.to_lowercase()).unwrap_or_else(|| "unknown".to_string()),
         file_size: file_size_mb as f64,
-        date_added,
+        date_added: Some(date_added),
         thumbnail_base64,
         thumbnail_mime,
     })
 }
 
-
+#[allow(dead_code)]
 #[tauri::command]
 pub fn get_track_metadata(path: String) -> Result<ExtractedTrack, String> {
     extract_track_metadata(&path)
