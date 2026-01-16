@@ -1,7 +1,10 @@
 import { render, Portal } from "solid-js/web";
 import { Component, createSignal, Show, onCleanup } from "solid-js";
+import {invoke} from "@tauri-apps/api/core";
+
 // @ts-expect-error
 import ColorThief from "colorthief";
+import { save } from "@tauri-apps/plugin-dialog";
 
 interface ModalProps {
     title: string;
@@ -66,7 +69,41 @@ export function musicUpload() {
     }
   };
 
+  
+
   const Modal: Component<ModalProps> = (props) => {
+    
+    // Meta data variables that the user can change
+    const [title, setTitle] = createSignal<string>("");
+    const [artist, setArtist] = createSignal<string>("");
+    const [album, setAlbum] = createSignal<string>("");
+
+    setTitle(props.title);
+    setArtist(props.artist);
+    setAlbum(props.album);
+
+
+    const saveTrack = async () => {
+      try {
+        props.title = title();
+        props.artist = artist();
+        props.album = album();
+
+        console.log("Saving track with metadata:", props);
+
+        // Call backend to save track with updated metadata
+        const id = await invoke("add_track", { props});
+        
+        console.log("Track saved with ID:", id);
+
+        closeModal();
+      } catch (err) {
+        console.error("Save error:", err);
+        alert("Failed to save track.");
+      }
+    };
+
+    
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") closeModal();
     };
@@ -138,7 +175,8 @@ export function musicUpload() {
                     </label>
                     <input 
                       type="text" 
-                      value={props.title ?? "" }
+                      value={title() ?? "" }
+                      onInput= {(e) => setTitle(e.currentTarget.value)}
                       placeholder="Add title..."
                       class="w-full rounded-lg bg-black/20 border border-muted px-4 py-3 text-sm text-content placeholder-secondary focus:bg-black/40 focus:outline-none transition-all duration-300 focus:ring-1"
                       style={{ "--tw-ring-color": "var(--accent-ui)", "border-color": "var(--accent-ui)" }}
@@ -149,7 +187,8 @@ export function musicUpload() {
                     <label class="text-[10px] uppercase tracking-wider text-secondary font-bold ml-1">Artist</label>
                     <input 
                       type="text" 
-                      value={props.artist ?? "" }
+                      value={artist() ?? "" }
+                      onInput= {(e) => setArtist(e.currentTarget.value)}
                       placeholder="Add artist..."
                       class="w-full rounded-lg bg-black/20 border border-muted px-4 py-3 text-sm text-content placeholder-secondary focus:bg-black/40 focus:outline-none transition-all duration-300 focus:ring-1"
                       style={{ "--tw-ring-color": "var(--accent-ui)", "border-color": "var(--accent-ui)" }}
@@ -160,7 +199,8 @@ export function musicUpload() {
                     <label class="text-[10px] uppercase tracking-wider text-secondary font-bold ml-1">Album</label>
                     <input 
                       type="text" 
-                      value={props.album ?? "" }
+                      value={album() ?? "" }
+                      onInput= {(e) => setAlbum(e.currentTarget.value)}
                       placeholder="Add album..." 
                       class="w-full rounded-lg bg-black/20 border border-muted px-4 py-3 text-sm text-content placeholder-secondary focus:bg-black/40 focus:outline-none transition-all duration-300 focus:ring-1"
                       style={{ "--tw-ring-color": "var(--accent-ui)", "border-color": "var(--accent-ui)" }}
@@ -177,7 +217,7 @@ export function musicUpload() {
                   </button>
 
                   <button
-                    onClick={closeModal}
+                    onClick={saveTrack}
                     style={{ 
                       "background-color": "var(--accent)",
                       "box-shadow": "0 10px 30px -10px var(--accent)" 
