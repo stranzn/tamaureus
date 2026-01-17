@@ -203,7 +203,7 @@ impl Database {
     // TODO: implement functions for tracks
 
     pub async fn get_tracks(&self) -> Result<Vec<Track>, String> {
-        sqlx::query_as::<_, Track>("SELECT id, file_path, title, artist_id, album_id, duration_ms, file_format, file_size, date_added FROM tracks ORDER BY title")
+        sqlx::query_as::<_, Track>("SELECT id, file_path, title, artist_id, album_id, duration_ms, file_format, file_size, date_added, thumbnail_base64, thumbnail_mime FROM tracks ORDER BY title")
             .fetch_all(&self.db)
             .await
             .map_err(|e| format!("Database error: {}", e))

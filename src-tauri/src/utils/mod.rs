@@ -1,4 +1,5 @@
 use chrono::{Datelike, Local};
+use tauri::Manager;
 
 pub mod tag_reader;
 
@@ -36,4 +37,16 @@ pub fn current_date_as_int() -> i64 {
     (now.year() as i64) * 10000 
         + (now.month() as i64) * 100 
         + (now.day() as i64)
+}
+
+
+#[allow(dead_code)]
+#[tauri::command]
+pub fn get_user_song_dir(app: tauri::AppHandle) -> Option<String> {
+    let config_dir = app.path().app_config_dir().ok()?;
+    let settings_path = config_dir.join("settings.txt");
+
+    let music_dir = std::fs::read_to_string(settings_path).ok()?;
+
+    Some(music_dir)
 }

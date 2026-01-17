@@ -81,6 +81,7 @@ pub fn run() {
             // util functions
             utils::move_file_to_dir,
             utils::tag_reader::get_track_metadata,
+            utils::get_user_song_dir,
             // player functions
             player::play_track,
             player::pause,

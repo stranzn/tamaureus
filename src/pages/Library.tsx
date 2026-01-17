@@ -1,12 +1,42 @@
 import { Menu, Search, Plus } from "lucide-solid";
 import { musicUpload } from "../components/modals/music_upload";
 import { open } from "@tauri-apps/plugin-dialog";
-import { createSignal } from "solid-js";
+import { createEffect, createSignal } from "solid-js";
 import { invoke } from '@tauri-apps/api/core';
 
 export default function Library() {
   // Im assuming that I will get a list of and playlists from the database
   // hopefully playlists and songs will be formatted in json
+
+
+  // Getting the tracks from the data base
+  const getTracks = async () => {
+    try {
+      const tracks = await invoke<any[]>("get_tracks");
+      console.log("Tracks from DB:", tracks);
+      return tracks;
+    } catch (err) {
+      console.error("Error fetching tracks:", err);
+      return [];
+    }
+  };
+
+  const [tracks, setTracks] = createSignal<any[]>([]);
+
+  createEffect(async () => {
+    const tracks = await getTracks();
+    setTracks(tracks);
+  });
+
+
+  function printTracks() {
+    tracks().forEach((track) => {
+      console.log(`Title: ${track.title}, Artist: ${track.artist}`);
+    });
+  }
+
+  printTracks();
+
 
   //
   const { Modal, openModal} = musicUpload();

@@ -79,18 +79,24 @@ export function musicUpload() {
     const [artist, setArtist] = createSignal<string>("");
     const [album, setAlbum] = createSignal<string>("");
 
-
     createEffect(() => {
-      setTitle(props.title);
-      setArtist(props.artist);
-      setAlbum(props.album);
+      if (!open()) return;
+
+      setTitle(props.title ?? "");
+      setArtist(props.artist ?? "");
+      setAlbum(props.album ?? "");
     });
 
 
+
+
     const saveTrack = async () => {
+
+      const confirmedPath = await moveFile();
+
       try {
         const payload = {
-          file_path: props.filePath,
+          file_path: confirmedPath,
           title: title(),
           artist: artist(),
           album: album(),
@@ -116,6 +122,29 @@ export function musicUpload() {
       }
     };
 
+    const moveFile = async () => {
+      try {
+          const destination = await get_user_music_dir();
+          console.log("Moving file to:", destination);
+          console.log("Source file:", props.filePath);
+          const confirmedPath = await invoke("move_file_to_dir", { srcFile: props.filePath, destDir: destination });
+          console.log("File moved to:", destination);
+          return confirmedPath;
+      } catch (err) {
+        console.error("Move file error:", err);
+      }
+    };
+
+    const get_user_music_dir = async (): Promise<string> => {
+      try {
+        const musicDir = await invoke<string>("get_user_song_dir");
+        return musicDir;
+      } catch (err) {
+        console.error("Error getting user music directory:", err);
+        return "";
+      }
+    };
+
     
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") closeModal();
@@ -126,7 +155,7 @@ export function musicUpload() {
 
     return (
       <Portal>
-        <Show when={open()} keyed>
+        <Show when={open()}>
           <div
             onClick={closeModal}
             class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md transition-opacity"

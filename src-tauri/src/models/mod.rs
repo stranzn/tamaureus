@@ -23,7 +23,7 @@ pub struct Track {
     pub album_id: i64,
     pub duration_ms: i64,
     pub file_format: String, // ex. "mp3"
-    pub file_size: i64,
+    pub file_size: f64,
     pub date_added: Option<i64>, // ex. 20260112
     #[serde(skip_serializing_if = "Option::is_none")]
     pub thumbnail_base64: Option<String>,
