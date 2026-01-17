@@ -215,7 +215,7 @@ impl Database {
 
         // check if exists
         if let Some(existing_id) = self.track_exists(&file_path).await? {
-            return Ok(existing_id);
+            return Ok(-existing_id); // negative value indicates dupe
         }
 
         

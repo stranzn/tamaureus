@@ -2,6 +2,8 @@ use chrono::{Datelike, Local};
 
 pub mod tag_reader;
 
+
+// TODO: add check for if src path and dest path are identical
 #[allow(dead_code)]
 #[tauri::command]
 pub async fn move_file_to_dir(
@@ -16,6 +18,11 @@ pub async fn move_file_to_dir(
         .ok_or_else(|| "Source path has no filename".to_string())?;
 
     let dest_path = dest_dir_path.join(filename);
+
+    // return early if paths are the same
+    if src_path == dest_path {
+        return Ok(dest_path.to_string_lossy().into_owned());
+    }
 
     tokio::fs::rename(src_path, &dest_path)
         .await
