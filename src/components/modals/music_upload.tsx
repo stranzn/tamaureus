@@ -126,7 +126,7 @@ export function musicUpload() {
 
     return (
       <Portal>
-        <Show when={open()}>
+        <Show when={open()} keyed>
           <div
             onClick={closeModal}
             class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md transition-opacity"
