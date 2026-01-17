@@ -1,126 +1,73 @@
-import { Menu, Search, Plus } from "lucide-solid";
+import { Menu, Search, Plus, Play, Pause } from "lucide-solid";
 import { musicUpload } from "../components/modals/music_upload";
 import { open } from "@tauri-apps/plugin-dialog";
 import { createEffect, createSignal } from "solid-js";
 import { invoke } from '@tauri-apps/api/core';
+import { playerStore } from "../store/playerStore";
+
+// TODO ---------------------------------------------------------------------------------------------------- AHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+// WE DONT HAVE ARTIST AND ALBUM IN THE GET TRACKS FUNCTION YET
+// WE GOTTA MAKE SURE THAT THE FUNCTION RETURNS IT WITH THOSE INSTEAD OF THE ID'S
 
 export default function Library() {
-  // Im assuming that I will get a list of and playlists from the database
-  // hopefully playlists and songs will be formatted in json
+  const { loadAndPlay, currentPath, isPlaying } = playerStore;
+  const [tracks, setTracks] = createSignal<any[]>([]);
+  const [searchQuery, setSearchQuery] = createSignal("");
+  const { Modal, openModal } = musicUpload();
+  const [currentUploadPath, setCurrentUploadPath] = createSignal("");
+  const [meta, setMeta] = createSignal({
+    title: "", artist: "", album: "", fileFormat: "", 
+    fileSize: 0, duration: 0, dateAdded: 0, 
+    thumbBase64: "", thumbMime: ""
+  });
 
-
-  // Getting the tracks from the data base
   const getTracks = async () => {
     try {
       const tracks = await invoke<any[]>("get_tracks");
-      console.log("Tracks from DB:", tracks);
       return tracks;
     } catch (err) {
-      console.error("Error fetching tracks:", err);
       return [];
     }
   };
 
-  const [tracks, setTracks] = createSignal<any[]>([]);
-
   createEffect(async () => {
-    const tracks = await getTracks();
-    setTracks(tracks);
+    const data = await getTracks();
+    setTracks(data);
   });
-
-
-  function printTracks() {
-    tracks().forEach((track) => {
-      console.log(`Title: ${track.title}, Artist: ${track.artist}`);
-    });
-  }
-
-  printTracks();
-
-
-  //
-  const { Modal, openModal} = musicUpload();
-
-
-
-  const [currentPath, setCurrentPath] = createSignal<string>("");
-
-  // Meta data variables
-  const [title, setTitle] = createSignal<string>("");
-  const [artist, setArtist] = createSignal<string>("");
-  const [album, setAlbum] = createSignal<string>("");
-  const [fileFormat, setFileFormat] = createSignal<string>("");
-  const [fileSize, setFileSize] = createSignal<number>(0);
-  const [duration, setDuration] = createSignal<number>(0);
-  const [dateAdded, setDateAdded] = createSignal<number>(0);
-  const [thumbnailBase64, setThumbnailBase64] = createSignal<string>("");
-  const [thumbnailMimeType, setThumbnailMimeType] = createSignal("");
-
-
-  interface ModalProps {
-    file_path: string;
-    title: string;
-    artist: string;
-    album: string;
-    file_format: string;
-    file_size: number;
-    duration_ms: number;
-    date_added: number;
-    thumbnail_base64: string;
-    thumbnail_mime: string;
-  }
 
   async function selectAudioFiles() {
     const srcPath = await open({
-      // Allow multiple selection if needed
-      multiple: false, 
-      // Title for the dialog (Desktop only)
-      title: 'Select Music Tracks', 
-      filters: [
-        {
-          name: 'Audio Files',
-          // Define common audio extensions
-          extensions: ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac']
-        }
-      ]
+      multiple: false,
+      title: 'Select Music Tracks',
+      filters: [{ name: 'Audio Files', extensions: ['mp3', 'wav', 'ogg', 'm4a', 'flac'] }]
     });
 
-    if (srcPath === null) {
-      console.log('User cancelled the selection');
-    } else {
-      // selected will be a string (single) or string[] (multiple)
-      console.log('Selected file(s):', srcPath);
-      setCurrentPath(srcPath);
-      
+    if (srcPath && typeof srcPath === 'string') {
+      setCurrentUploadPath(srcPath);
       try {
-        // 1. Save to Rust backend
-        const metadata = await invoke<ModalProps>("get_track_metadata", { path: srcPath });
-
-        console.log("Metadata received from Rust:", metadata);
-
-        // Setting metadata signals
-        setTitle(metadata.title);
-        setArtist(metadata.artist);
-        setAlbum(metadata.album);
-        setFileFormat(metadata.file_format);
-        setFileSize(metadata.file_size);
-        setDuration(metadata.duration_ms);
-        setDateAdded(metadata.date_added);
-        setThumbnailBase64(metadata.thumbnail_base64);
-        setThumbnailMimeType(metadata.thumbnail_mime);
-
+        const metadata = await invoke<any>("get_track_metadata", { path: srcPath });
+        
+        setMeta({
+          title: metadata.title,
+          artist: metadata.artist,
+          album: metadata.album,
+          fileFormat: metadata.file_format,
+          fileSize: metadata.file_size,
+          duration: metadata.duration_ms,
+          dateAdded: metadata.date_added,
+          thumbBase64: metadata.thumbnail_base64,
+          thumbMime: metadata.thumbnail_mime
+        });
+        
+        openModal();
       } catch (err) {
-        console.error("Save error:", err);
+        console.error(err);
       }
-      
-      openModal();
     }
-
   }
 
-
   return (
-    <main>
+    <main class="h-full flex flex-col p-4 overflow-y-auto pb-32">
       <div>
         <p class="text-[var(--color-content)] text-2xl font-bold mb-4">Library</p>
       </div>
@@ -130,6 +77,8 @@ export default function Library() {
             type="text"
             placeholder="Search your library..."
             class="w-full p-2 pr-10 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+            value={searchQuery()}
+            onInput={(e) => setSearchQuery(e.currentTarget.value)}
           />
           <Search
             size={20}
@@ -139,7 +88,6 @@ export default function Library() {
         <Menu class="mr-10" size={40} />
       </div>
 
-      {/* CREATE PLAYLISTS BUTTON */}
       <div class="mt-8 flex flex-col items-center w-fit">
         <div class="w-32 h-32 border-2 border-dashed border-[var(--color-secondary)] rounded-md flex items-center justify-center cursor-pointer hover:border-[var(--color-primary)] transition-colors duration-300">
           <Plus
@@ -147,41 +95,80 @@ export default function Library() {
             class="text-gray-400 hover:text-[var(--color-primary)] transition-colors duration-300"
           />
         </div>
-
         <p class="text-gray-500 mt-2 text-center">Create New Playlist</p>
       </div>
 
-      {/* HERE I WILL ADD PLAYLIST BASED ON AN ARRAY OF PLAYLISTS */}
-
       <hr class="w-[95%] mt-8" />
 
-      {/* ADD SONG BUTTON */}
-      <div class="mt-8 flex flex-col items-center w-fit">
-        <button onclick={selectAudioFiles}>
-          <div class="w-32 h-32 border-2 border-dashed border-[var(--color-secondary)] rounded-md flex items-center justify-center cursor-pointer hover:border-[var(--color-primary)] transition-colors duration-300">
-            <Plus
-              size={43}
-              class="text-gray-400 hover:text-[var(--color-primary)] transition-colors duration-300"
-            />
-          </div>
-        </button>
-        <Modal 
-            filePath={currentPath()}
-            title={title()}
-            artist={artist()}
-            album={album()}
-            fileFormat={fileFormat()}
-            fileSize={fileSize()}
-            durationMs={duration()}
-            dateAdded={dateAdded()}
-            thumbnailBase64={thumbnailBase64()}
-            thumbnailMime={thumbnailMimeType()}
-          />
+      <div class="flex flex-wrap gap-8 mt-8">
+        <div class="flex flex-col items-center w-32">
+          <button onclick={selectAudioFiles}>
+            <div class="w-32 h-32 border-2 border-dashed border-[var(--color-secondary)] rounded-md flex items-center justify-center cursor-pointer hover:border-[var(--color-primary)] transition-colors duration-300">
+              <Plus
+                size={43}
+                class="text-gray-400 hover:text-[var(--color-primary)] transition-colors duration-300"
+              />
+            </div>
+          </button>
+          <p class="text-gray-500 mt-2 text-center text-sm">Add New Song</p>
+        </div>
 
-        <p class="text-gray-500 mt-2 text-center">Add New Song</p>
+        {tracks()
+          .filter(t => t.title?.toLowerCase().includes(searchQuery().toLowerCase()))
+          .map((track) => {
+            const isActive = currentPath() === track.file_path;
+            
+            return (
+              <div class="flex flex-col group relative w-32">
+                <div 
+                  onClick={() => loadAndPlay(track.file_path, track.title, track.artist, track.thumbnail_base64, track.thumbnail_mime)}
+                  class="w-32 h-32 rounded-xl bg-[var(--color-secondary)] overflow-hidden relative cursor-pointer shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  {track.thumbnail_base64 ? (
+                    <img 
+                      src={`data:${track.thumbnail_mime};base64,${track.thumbnail_base64}`} 
+                      class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                    />
+                  ) : (
+                    <div class="w-full h-full flex items-center justify-center bg-gray-800">
+                      <span class="text-4xl text-gray-600 font-bold select-none">
+                        {track.title ? track.title.charAt(0).toUpperCase() : "?"}
+                      </span>
+                    </div>
+                  )}
+
+                  <div class={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                    <button class="bg-[var(--color-primary)] text-white rounded-full p-3 shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                      {isActive && isPlaying() ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" class="ml-1" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div class="mt-2 w-full">
+                  <h3 class={`font-bold truncate text-sm ${isActive ? 'text-[var(--color-primary)]' : 'text-[var(--color-content)]'}`}>
+                    {track.title || "Unknown Title"}
+                  </h3>
+                  <p class="text-xs text-gray-500 truncate mt-0.5">
+                    {track.artist || "Unknown Artist"}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
       </div>
 
-      {/* SAME THING (LIST SONGS BASED ON AN ARRAY OF SONGS) */}
+      <Modal 
+        filePath={currentUploadPath()}
+        title={meta().title}
+        artist={meta().artist}
+        album={meta().album}
+        fileFormat={meta().fileFormat}
+        fileSize={meta().fileSize}
+        durationMs={meta().duration}
+        dateAdded={meta().dateAdded}
+        thumbnailBase64={meta().thumbBase64}
+        thumbnailMime={meta().thumbMime}
+      />
     </main>
   );
 }

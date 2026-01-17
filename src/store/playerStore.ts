@@ -23,7 +23,7 @@ function createPlayerStore() {
   const displayTime = createMemo(() => previewTime() ?? currentTime());
 
   // ── Other UI state ─────────────────────────────────────────────────────
-  const [volume, setVolume] = createSignal([65]);
+  const [volume, setVolume] = createSignal([35]);
   const [isMuted, setIsMuted] = createSignal(false);
 
   const [songTitle, setSongTitle] = createSignal("Song Title");
@@ -72,7 +72,7 @@ function createPlayerStore() {
     }
   };
 
-  const loadAndPlay = async (path: string, title: string, artist: string) => {
+  const loadAndPlay = async (path: string, title: string, artist: string, thumbnailBase64: string, thumbnailMime: string) => {
     try {
       const realDuration = await invoke<number>('play_track', { path });
 
@@ -84,6 +84,7 @@ function createPlayerStore() {
       setSongTitle(title || "Unknown");
       setArtistName(artist || "");
       setDuration(realDuration);
+      setAlbumCover(`data:${thumbnailMime};base64,${thumbnailBase64}`);
       setCurrentTime(0);
       setIsPlaying(true);
     } catch (e) {

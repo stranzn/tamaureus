@@ -3,8 +3,8 @@ import ThemeToggle from "../components/theme-toggle";
 export default function Settings() {
     
     return(
-        <div>
-            <h1 class="text-emerald-400 text-2xl">Settings</h1>
+        <div class="pl-4">
+            <h1 class="text-2xl font-bold pt-4 text-content">Settings</h1>
             <ThemeToggle />
         </div>
     );

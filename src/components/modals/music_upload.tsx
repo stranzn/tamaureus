@@ -4,7 +4,6 @@ import {invoke} from "@tauri-apps/api/core";
 
 // @ts-expect-error
 import ColorThief from "colorthief";
-import { save } from "@tauri-apps/plugin-dialog";
 
 interface ModalProps {
     filePath: string;
