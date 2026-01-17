@@ -5,6 +5,9 @@ use crate::{
     utils::current_date_as_int,
 };
 
+const UNKNOWN_ARTIST_ID: i64 = 1;
+const UNKNOWN_ALBUM_ID: i64 = 1;
+
 #[allow(dead_code)]
 impl Database {
     // artist queries
@@ -66,7 +69,7 @@ impl Database {
     pub async fn find_or_create_artist(&self, name: &str) -> Result<i64, String> {
         let trimmed = name.trim();
         if trimmed.is_empty() {
-            return Err("Artist name cannot be empty".to_string());
+            return Ok(UNKNOWN_ARTIST_ID);
         }
 
         // Try to find existing artist
@@ -168,7 +171,7 @@ impl Database {
     pub async fn find_or_create_album(&self, title: &str, artist_id: i64) -> Result<i64, String> {
         let trimmed = title.trim();
         if trimmed.is_empty() {
-            return Err("Album title cannot be empty".to_string());
+            return Ok(UNKNOWN_ALBUM_ID);
         }
 
         // Find existing album by title + artist

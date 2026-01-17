@@ -58,3 +58,26 @@ CREATE TABLE IF NOT EXISTS playlist_tracks (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_playlists_name_unique_user
 ON playlists(name COLLATE NOCASE)
 WHERE is_system = 0;
+
+-- UNKNOWN ARTIST ROW CREATION
+INSERT OR IGNORE INTO artists (id, name)
+VALUES (1, 'Unknown Artist');
+
+-- UNKNOWN ALBUM ROW CREATION
+INSERT OR IGNORE INTO albums (id, title, artist_id)
+VALUES (1, 'Unknown Album', 1);
+
+-- triggers to prevent deletion of the default rows
+CREATE TRIGGER IF NOT EXISTS prevent_unknown_artist_delete
+BEFORE DELETE ON artists
+WHEN OLD.id = 1
+BEGIN
+    SELECT RAISE(ABORT, 'Cannot delete Unknown Artist');
+END;
+
+CREATE TRIGGER IF NOT EXISTS prevent_unknown_album_delete
+BEFORE DELETE ON albums
+WHEN OLD.id = 1
+BEGIN
+    SELECT RAISE(ABORT, 'Cannot delete Unknown Album');
+END;
