@@ -74,6 +74,7 @@ pub fn run() {
             db::find_or_create_album,
             // track functions
             db::get_tracks,
+            db::get_tracks_with_names,
             db::add_track,
             // user config functions
             user_config::save_music_dir,

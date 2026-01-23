@@ -5,10 +5,6 @@ import { createEffect, createSignal } from "solid-js";
 import { invoke } from '@tauri-apps/api/core';
 import { playerStore } from "../store/playerStore";
 
-// TODO ---------------------------------------------------------------------------------------------------- AHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-// WE DONT HAVE ARTIST AND ALBUM IN THE GET TRACKS FUNCTION YET
-// WE GOTTA MAKE SURE THAT THE FUNCTION RETURNS IT WITH THOSE INSTEAD OF THE ID'S
-
 export default function Library() {
   const { loadAndPlay, currentPath, isPlaying } = playerStore;
   const [tracks, setTracks] = createSignal<any[]>([]);
@@ -23,7 +19,7 @@ export default function Library() {
 
   const getTracks = async () => {
     try {
-      const tracks = await invoke<any[]>("get_tracks");
+      const tracks = await invoke<any[]>("get_tracks_with_names");
       return tracks;
     } catch (err) {
       return [];
@@ -33,6 +29,7 @@ export default function Library() {
   createEffect(async () => {
     const data = await getTracks();
     setTracks(data);
+    console.log(data);
   });
 
   async function selectAudioFiles() {
@@ -149,7 +146,7 @@ export default function Library() {
                     {track.title || "Unknown Title"}
                   </h3>
                   <p class="text-xs text-gray-500 truncate mt-0.5">
-                    {track.artist || "Unknown Artist"}
+                    {track.artist_name || "Unknown Artist"}
                   </p>
                 </div>
               </div>

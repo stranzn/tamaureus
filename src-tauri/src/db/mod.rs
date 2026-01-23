@@ -205,11 +205,30 @@ impl Database {
 
     // TODO: implement functions for tracks
 
+    //
     pub async fn get_tracks(&self) -> Result<Vec<Track>, String> {
         sqlx::query_as::<_, Track>("SELECT id, file_path, title, artist_id, album_id, duration_ms, file_format, file_size, date_added, thumbnail_base64, thumbnail_mime FROM tracks ORDER BY title")
             .fetch_all(&self.db)
             .await
             .map_err(|e| format!("Database error: {}", e))
+    }
+
+    pub async fn get_tracks_with_names(&self) -> Result<Vec<Track>, String> {
+        sqlx::query_as::<_, Track>(
+            r#"
+        SELECT 
+            t.*,
+            a.name          AS artist_name,
+            al.title        AS album_name
+        FROM tracks t
+        LEFT JOIN artists   a  ON t.artist_id = a.id
+        LEFT JOIN albums    al ON t.album_id  = al.id
+        ORDER BY t.title COLLATE NOCASE
+        "#,
+        )
+        .fetch_all(&self.db)
+        .await
+        .map_err(|e| format!("Database error: {}", e))
     }
 
     // opting to have struct as argument here because of the number of properties
@@ -221,7 +240,6 @@ impl Database {
             return Ok(-existing_id); // negative value indicates dupe
         }
 
-        
         let artist_id = self.find_or_create_artist(&track.artist).await?;
         let album_id = self.find_or_create_album(&track.album, artist_id).await?;
 
@@ -359,6 +377,14 @@ pub async fn find_or_create_album(
 #[tauri::command]
 pub async fn get_tracks(state: tauri::State<'_, Database>) -> Result<Vec<Track>, String> {
     state.get_tracks().await
+}
+
+#[allow(dead_code)]
+#[tauri::command]
+pub async fn get_tracks_with_names(
+    state: tauri::State<'_, Database>,
+) -> Result<Vec<Track>, String> {
+    state.get_tracks_with_names().await
 }
 
 #[allow(dead_code)]

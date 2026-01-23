@@ -29,6 +29,9 @@ pub struct Track {
     pub thumbnail_base64: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub thumbnail_mime: Option<String>,
+
+    pub artist_name: Option<String>,
+    pub album_name:  Option<String>,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
