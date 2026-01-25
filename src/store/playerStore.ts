@@ -6,7 +6,6 @@ import { listen } from '@tauri-apps/api/event';
   Features left to do:
   - Add skiping to next/previous track functionality
   - Handle end of track (auto play next?)
-  - I think I probably should add the ability to repeat and shuffle tracks
 */
 
 
@@ -87,6 +86,8 @@ function createPlayerStore() {
       setAlbumCover(`data:${thumbnailMime};base64,${thumbnailBase64}`);
       setCurrentTime(0);
       setIsPlaying(true);
+
+      console.log(`Playing track: ${title} by ${artist}`);
     } catch (e) {
       console.error("Failed to load track:", e);
     }
