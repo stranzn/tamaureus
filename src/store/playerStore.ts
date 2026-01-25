@@ -22,7 +22,7 @@ function createPlayerStore() {
   const displayTime = createMemo(() => previewTime() ?? currentTime());
 
   // ── Other UI state ─────────────────────────────────────────────────────
-  const [volume, setVolume] = createSignal([35]);
+  const [volume, setVolume] = createSignal([25]);
   const [isMuted, setIsMuted] = createSignal(false);
 
   const [songTitle, setSongTitle] = createSignal("Song Title");

@@ -94,7 +94,17 @@ export default function Library() {
       setCurrentUploadPath(srcPath);
       try {
         const metadata = await invoke<any>("get_track_metadata", { path: srcPath });
-        setMeta({ ...metadata, thumbBase64: metadata.thumbnail_base64, thumbMime: metadata.thumbnail_mime });
+        setMeta({
+          title: metadata.title,
+          artist: metadata.artist,
+          album: metadata.album,
+          fileFormat: metadata.file_format,
+          fileSize: metadata.file_size,
+          duration: metadata.duration_ms,
+          dateAdded: metadata.date_added,
+          thumbBase64: metadata.thumbnail_base64,
+          thumbMime: metadata.thumbnail_mime
+        });
         openModal();
       } catch (err) { console.error(err); }
     }
