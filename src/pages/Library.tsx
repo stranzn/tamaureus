@@ -1,5 +1,6 @@
 import { Menu as MenuIcon, Search, Plus, Play, Pause, Trash } from "lucide-solid";
 import { musicUpload } from "../components/modals/music_upload";
+import { useNavigate } from "@solidjs/router";
 import { open, ask } from "@tauri-apps/plugin-dialog";
 import ContextMenu from "../components/context-menu";
 import { createEffect, createSignal, onCleanup, Show } from "solid-js";
@@ -17,6 +18,8 @@ export default function Library() {
     fileSize: 0, duration: 0, dateAdded: 0, 
     thumbBase64: "", thumbMime: ""
   });
+
+  const navigate = useNavigate();
 
   // custom context menu state that keeps track of info for the right click menu 
   const [contextMenu, setContextMenu] = createSignal({
@@ -63,6 +66,7 @@ export default function Library() {
     const track = contextMenu().track;
     setContextMenu({ ...contextMenu(), show: false }); // Close menu
 
+    console.log("Attempting to delete track:", track);
     if (!track) return;
 
     // ask the user if they are sure they want to delete
@@ -110,6 +114,12 @@ export default function Library() {
     }
   }
 
+  function createPlaylist() {
+    // maybe do it like openModal later
+    navigate("/playlist");
+
+  }
+
   return (
     <main class="h-full flex flex-col p-4 overflow-y-auto pb-32">
       {/* Header */}
@@ -132,9 +142,11 @@ export default function Library() {
 
       {/* Upload/Create Playlist Buttons */}
       <div class="mt-8 flex flex-col items-center w-fit">
-        <div class="w-32 h-32 border-2 border-dashed border-[var(--color-secondary)] rounded-md flex items-center justify-center cursor-pointer hover:border-[var(--color-primary)] transition-colors duration-300">
-          <Plus size={43} class="text-gray-400 hover:text-[var(--color-primary)] transition-colors duration-300" />
-        </div>
+        <button onclick={createPlaylist}>
+          <div class="w-32 h-32 border-2 border-dashed border-[var(--color-secondary)] rounded-md flex items-center justify-center cursor-pointer hover:border-[var(--color-primary)] transition-colors duration-300">
+            <Plus size={43} class="text-gray-400 hover:text-[var(--color-primary)] transition-colors duration-300" />
+          </div>
+        </button>
         <p class="text-gray-500 mt-2 text-center">Create New Playlist</p>
       </div>
 
@@ -208,6 +220,8 @@ export default function Library() {
         thumbnailBase64={meta().thumbBase64}
         thumbnailMime={meta().thumbMime}
       />
+
+      
     </main>
   );
 }
