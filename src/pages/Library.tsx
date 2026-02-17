@@ -75,7 +75,7 @@ export default function Library() {
     if (confirm) {
       try {
         // calling the backend function that deletes the track from the database and the users song folder 
-        await invoke("delete_track", { filePath: track.file_path });
+        await invoke("remove_track", { trackId: track.id });
         setTracks((prev) => prev.filter((t) => t.file_path !== track.file_path));
       } catch (err) {
         console.error("Failed to delete:", err);

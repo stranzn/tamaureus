@@ -76,6 +76,7 @@ pub fn run() {
             db::get_tracks,
             db::get_tracks_with_names,
             db::add_track,
+            db::remove_track,
             // user config functions
             user_config::save_music_dir,
             user_config::load_music_dir,

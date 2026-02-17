@@ -264,7 +264,17 @@ impl Database {
 
         Ok(id)
     }
-    // pub async fn remove_track();
+
+    pub async fn remove_track(&self, track_id: i64) -> Result<(), String> {
+        sqlx::query("DELETE FROM tracks WHERE id = ?")
+            .bind(track_id)
+            .execute(&self.db)
+            .await
+            .map_err(|e| format!("Database error: {}", e))?;
+
+        Ok(())
+    }
+
     pub async fn track_exists(&self, file_path: &str) -> Result<Option<i64>, String> {
         // We use query_scalar to fetch a single value (the ID)
         let maybe_id = sqlx::query_scalar::<_, i64>("SELECT id FROM tracks WHERE file_path = ?")
@@ -394,4 +404,13 @@ pub async fn add_track(
     track: ExtractedTrack,
 ) -> Result<i64, String> {
     state.add_track(track).await
+}
+
+#[allow(dead_code)]
+#[tauri::command]
+pub async fn remove_track(
+    state: tauri::State<'_, Database>,
+    track_id: i64,
+) -> Result<(), String> {
+    state.remove_track(track_id).await
 }
