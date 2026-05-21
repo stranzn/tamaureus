@@ -76,6 +76,13 @@ pub fn run() {
             db::get_tracks,
             db::get_tracks_with_names,
             db::add_track,
+            // playlist functions
+            db::get_playlist,
+            db::get_playlists_with_previews,
+            db::get_playlist_tracks,
+            db::save_playlist,
+            db::update_playlist,
+            db::delete_playlist,
             // user config functions
             user_config::save_music_dir,
             user_config::load_music_dir,
@@ -83,6 +90,7 @@ pub fn run() {
             utils::move_file_to_dir,
             utils::tag_reader::get_track_metadata,
             utils::get_user_song_dir,
+            utils::read_file_as_base64,
             // player functions
             player::play_track,
             player::pause,

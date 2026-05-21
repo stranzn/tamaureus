@@ -1,7 +1,7 @@
 use sqlx::Row;
 
 use crate::{
-    models::{Album, AppState as Database, Artist, ExtractedTrack, Track},
+    models::{Album, AppState as Database, Artist, ExtractedTrack, Track, Playlist, PlaylistPreview },
     utils::current_date_as_int,
 };
 
@@ -276,6 +276,174 @@ impl Database {
         Ok(maybe_id)
     }
 
+    // ── inside impl Database ──────────────────────────────────────────────────────
+
+    // playlist queries
+    pub async fn get_playlist(&self, id: i64) -> Result<Playlist, String> {
+        sqlx::query_as::<_, Playlist>(
+            "SELECT id, name, description, cover_path, cover_color, is_system, created_at, updated_at
+            FROM playlists WHERE id = ?",
+        )
+        .bind(id)
+        .fetch_one(&self.db)
+        .await
+        .map_err(|e| format!("Database error: {}", e))
+    }
+
+        // This is hella long because it fetches 4 separate thumbnails for the playlist preview, but it saves a lot of complexity on the frontend
+        pub async fn get_playlists_with_previews(&self) -> Result<Vec<PlaylistPreview>, String> {
+        sqlx::query_as::<_, PlaylistPreview>(
+            r#"
+            SELECT
+                p.id,
+                p.name,
+                p.description,
+                p.cover_path,
+                (SELECT COUNT(*) FROM playlist_tracks WHERE playlist_id = p.id) AS track_count,
+                (SELECT t.thumbnail_base64 FROM playlist_tracks pt JOIN tracks t ON pt.track_id = t.id
+                WHERE pt.playlist_id = p.id AND t.thumbnail_base64 IS NOT NULL
+                ORDER BY pt.position LIMIT 1 OFFSET 0) AS thumb1_base64,
+                (SELECT t.thumbnail_mime FROM playlist_tracks pt JOIN tracks t ON pt.track_id = t.id
+                WHERE pt.playlist_id = p.id AND t.thumbnail_base64 IS NOT NULL
+                ORDER BY pt.position LIMIT 1 OFFSET 0) AS thumb1_mime,
+                (SELECT t.thumbnail_base64 FROM playlist_tracks pt JOIN tracks t ON pt.track_id = t.id
+                WHERE pt.playlist_id = p.id AND t.thumbnail_base64 IS NOT NULL
+                ORDER BY pt.position LIMIT 1 OFFSET 1) AS thumb2_base64,
+                (SELECT t.thumbnail_mime FROM playlist_tracks pt JOIN tracks t ON pt.track_id = t.id
+                WHERE pt.playlist_id = p.id AND t.thumbnail_base64 IS NOT NULL
+                ORDER BY pt.position LIMIT 1 OFFSET 1) AS thumb2_mime,
+                (SELECT t.thumbnail_base64 FROM playlist_tracks pt JOIN tracks t ON pt.track_id = t.id
+                WHERE pt.playlist_id = p.id AND t.thumbnail_base64 IS NOT NULL
+                ORDER BY pt.position LIMIT 1 OFFSET 2) AS thumb3_base64,
+                (SELECT t.thumbnail_mime FROM playlist_tracks pt JOIN tracks t ON pt.track_id = t.id
+                WHERE pt.playlist_id = p.id AND t.thumbnail_base64 IS NOT NULL
+                ORDER BY pt.position LIMIT 1 OFFSET 2) AS thumb3_mime,
+                (SELECT t.thumbnail_base64 FROM playlist_tracks pt JOIN tracks t ON pt.track_id = t.id
+                WHERE pt.playlist_id = p.id AND t.thumbnail_base64 IS NOT NULL
+                ORDER BY pt.position LIMIT 1 OFFSET 3) AS thumb4_base64,
+                (SELECT t.thumbnail_mime FROM playlist_tracks pt JOIN tracks t ON pt.track_id = t.id
+                WHERE pt.playlist_id = p.id AND t.thumbnail_base64 IS NOT NULL
+                ORDER BY pt.position LIMIT 1 OFFSET 3) AS thumb4_mime
+            FROM playlists p
+            WHERE p.is_system = 0
+            ORDER BY p.name COLLATE NOCASE
+            "#,
+        )
+        .fetch_all(&self.db)
+        .await
+        .map_err(|e| format!("Database error: {}", e))
+    }
+
+    pub async fn save_playlist(
+        &self,
+        name: String,
+        description: Option<String>,
+        cover_path: Option<String>,
+        track_ids: Vec<i64>,
+    ) -> Result<i64, String> {
+        let playlist_id = sqlx::query_scalar!(
+        "INSERT INTO playlists (name, description, cover_path) VALUES (?, ?, ?) RETURNING id",
+        name,
+        description,
+        cover_path
+    )
+    .fetch_one(&self.db)
+    .await
+    .map_err(|e| format!("Failed to create playlist: {}", e))?;
+
+        for (position, track_id) in track_ids.iter().enumerate() {
+            let pos = position as i64;
+            sqlx::query!(
+                "INSERT INTO playlist_tracks (playlist_id, track_id, position) VALUES (?, ?, ?)",
+                playlist_id,
+                track_id,
+                pos
+            )
+            .execute(&self.db)
+            .await
+            .map_err(|e| format!("Failed to insert playlist track at position {}: {}", pos, e))?;
+        }
+
+        Ok(playlist_id)
+    }
+
+    // Returns tracks in position order, with artist/album names joined in
+    // (same shape as get_tracks_with_names so the frontend can reuse the same type)
+    pub async fn get_playlist_tracks(&self, playlist_id: i64) -> Result<Vec<Track>, String> {
+        sqlx::query_as::<_, Track>(
+            r#"
+            SELECT
+                t.*,
+                a.name   AS artist_name,
+                al.title AS album_name
+            FROM playlist_tracks pt
+            JOIN   tracks  t  ON pt.track_id  = t.id
+            LEFT JOIN artists  a  ON t.artist_id  = a.id
+            LEFT JOIN albums   al ON t.album_id   = al.id
+            WHERE pt.playlist_id = ?
+            ORDER BY pt.position
+            "#,
+        )
+        .bind(playlist_id)
+        .fetch_all(&self.db)
+        .await
+        .map_err(|e| format!("Database error: {}", e))
+    }
+
+    // Delete + re-insert is the cleanest way to handle reordering without
+    // fighting the UNIQUE(playlist_id, position) constraint
+    pub async fn update_playlist(
+        &self,
+        id: i64,
+        name: String,
+        description: Option<String>,
+        cover_path: Option<String>,
+        track_ids: Vec<i64>,
+    ) -> Result<(), String> {
+        sqlx::query!(
+            "UPDATE playlists
+            SET name = ?, description = ?, cover_path = ?, updated_at = unixepoch()
+            WHERE id = ?",
+            name,
+            description,
+            cover_path,
+            id
+        )
+        .execute(&self.db)
+        .await
+        .map_err(|e| format!("Failed to update playlist: {}", e))?;
+
+        sqlx::query!("DELETE FROM playlist_tracks WHERE playlist_id = ?", id)
+            .execute(&self.db)
+            .await
+            .map_err(|e| format!("Failed to clear old tracks: {}", e))?;
+
+        for (position, track_id) in track_ids.iter().enumerate() {
+            let pos = position as i64;
+            sqlx::query!(
+                "INSERT INTO playlist_tracks (playlist_id, track_id, position) VALUES (?, ?, ?)",
+                id,
+                track_id,
+                pos
+            )
+            .execute(&self.db)
+            .await
+            .map_err(|e| format!("Failed to insert track at position {}: {}", pos, e))?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn delete_playlist(&self, id: i64) -> Result<(), String> {
+        // ON DELETE CASCADE handles playlist_tracks automatically
+        sqlx::query!("DELETE FROM playlists WHERE id = ?", id)
+            .execute(&self.db)
+            .await
+            .map_err(|e| format!("Failed to delete playlist: {}", e))?;
+
+        Ok(())
+    }
+
     // maintenance functions
 
     // pub async fn sync_database();
@@ -394,4 +562,64 @@ pub async fn add_track(
     track: ExtractedTrack,
 ) -> Result<i64, String> {
     state.add_track(track).await
+}
+
+#[allow(dead_code)]
+#[tauri::command]
+pub async fn get_playlist(
+    state: tauri::State<'_, Database>,
+    id: i64,
+) -> Result<Playlist, String> {
+    state.get_playlist(id).await
+}
+
+#[allow(dead_code)]
+#[tauri::command]
+pub async fn get_playlists_with_previews(
+    state: tauri::State<'_, Database>,
+) -> Result<Vec<PlaylistPreview>, String> {
+    state.get_playlists_with_previews().await
+}
+
+#[allow(dead_code)]
+#[tauri::command]
+pub async fn save_playlist(
+    state: tauri::State<'_, Database>,
+    name: String,
+    description: Option<String>,
+    cover_path: Option<String>,
+    track_ids: Vec<i64>,
+) -> Result<i64, String> {
+    state.save_playlist(name, description, cover_path, track_ids).await
+}
+
+#[allow(dead_code)]
+#[tauri::command]
+pub async fn get_playlist_tracks(
+    state: tauri::State<'_, Database>,
+    playlist_id: i64,
+) -> Result<Vec<Track>, String> {
+    state.get_playlist_tracks(playlist_id).await
+}
+
+#[allow(dead_code)]
+#[tauri::command]
+pub async fn update_playlist(
+    state: tauri::State<'_, Database>,
+    id: i64,
+    name: String,
+    description: Option<String>,
+    cover_path: Option<String>,
+    track_ids: Vec<i64>,
+) -> Result<(), String> {
+    state.update_playlist(id, name, description, cover_path, track_ids).await
+}
+
+#[allow(dead_code)]
+#[tauri::command]
+pub async fn delete_playlist(
+    state: tauri::State<'_, Database>,
+    id: i64,
+) -> Result<(), String> {
+    state.delete_playlist(id).await
 }

@@ -50,3 +50,11 @@ pub fn get_user_song_dir(app: tauri::AppHandle) -> Option<String> {
 
     Some(music_dir)
 }
+
+#[allow(dead_code)]
+#[tauri::command]
+pub async fn read_file_as_base64(path: String) -> Result<String, String> {
+    use base64::{Engine as _, engine::general_purpose};
+    let bytes = std::fs::read(&path).map_err(|e| e.to_string())?;
+    Ok(general_purpose::STANDARD.encode(&bytes))
+}

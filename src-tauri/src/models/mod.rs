@@ -50,6 +50,35 @@ pub struct ExtractedTrack {
     pub thumbnail_mime: Option<String>,
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
+pub struct Playlist {
+    pub id: i64,
+    pub name: String,
+    pub description: Option<String>,
+    pub cover_path: Option<String>,
+    pub cover_color: Option<String>,
+    pub is_system: bool,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
+pub struct PlaylistPreview {
+    pub id: i64,
+    pub name: String,
+    pub description: Option<String>,
+    pub cover_path: Option<String>,
+    pub track_count: i64,
+    pub thumb1_base64: Option<String>,
+    pub thumb1_mime: Option<String>,
+    pub thumb2_base64: Option<String>,
+    pub thumb2_mime: Option<String>,
+    pub thumb3_base64: Option<String>,
+    pub thumb3_mime: Option<String>,
+    pub thumb4_base64: Option<String>,
+    pub thumb4_mime: Option<String>,
+}
+
 #[derive(Clone)]
 pub struct AppState {
     pub db: sqlx::SqlitePool,

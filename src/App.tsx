@@ -63,7 +63,7 @@ const AppContent: Component = () => {
         />
 
         <Route
-          path="/playlist"
+          path="/playlist/:id"
           component={() => (hasMusicDir() ? <Playlist /> : <Navigate href="/setup" />)}
         />
       </Router>
