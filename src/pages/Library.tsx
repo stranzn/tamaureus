@@ -23,14 +23,20 @@ export default function Library() {
 
   const navigate = useNavigate();
 
-  // custom context menu state that keeps track of info for the right click menu
+  // for track context menu
   const [contextMenu, setContextMenu] = createSignal({
     show: false, x: 0, y: 0, track: null as any
+  });
+
+  // for playlist context menu
+  const [playlistContextMenu, setPlaylistContextMenu] = createSignal({
+    show: false, x: 0, y: 0, playlist: null as any
   });
 
   // close menu on outside click
   const handleGlobalClick = () => {
     if (contextMenu().show) setContextMenu({ ...contextMenu(), show: false });
+    if (playlistContextMenu().show) setPlaylistContextMenu({ ...playlistContextMenu(), show: false });
   };
 
   // this is an event listener that will close the context menu when clicking outside
@@ -74,6 +80,11 @@ export default function Library() {
     setContextMenu({ show: true, x: e.pageX, y: e.pageY, track });
   };
 
+  const handlePlaylistContextMenu = (e: MouseEvent, playlist: any) => {
+    e.preventDefault();
+    setPlaylistContextMenu({ show: true, x: e.pageX, y: e.pageY, playlist });
+  };
+
   // actually deletes the track from the database, file system and the UI
   const handleDelete = async () => {
     const track = contextMenu().track;
@@ -96,6 +107,27 @@ export default function Library() {
         setTracks((prev) => prev.filter((t) => t.file_path !== track.file_path));
       } catch (err) {
         console.error("Failed to delete:", err);
+      }
+    }
+  };
+
+  // Playlist deletion
+  const handleDeletePlaylist = async () => {
+    const playlist = playlistContextMenu().playlist;
+    setPlaylistContextMenu({ ...playlistContextMenu(), show: false });
+    if (!playlist) return;
+
+    const confirm = await ask(
+      `Are you sure you want to delete "${playlist.name}"?\nThis cannot be undone.`,
+      { title: 'Delete Playlist', kind: 'warning' }
+    );
+
+    if (confirm) {
+      try {
+        await invoke("delete_playlist", { id: playlist.id });
+        setPlaylists((prev) => prev.filter((p) => p.id !== playlist.id));
+      } catch (err) {
+        console.error("Failed to delete playlist:", err);
       }
     }
   };
@@ -188,6 +220,7 @@ export default function Library() {
               <div class="flex flex-col group relative w-32">
                 <div
                   onclick={() => navigate(`/playlist/${playlist.id}`)}
+                  onContextMenu={(e) => handlePlaylistContextMenu(e, playlist)}
                   class="w-32 h-32 rounded-xl bg-[var(--color-secondary)] overflow-hidden relative cursor-pointer shadow-lg hover:shadow-xl transition-all duration-300"
                 >
                   <PlaylistCover
@@ -284,6 +317,17 @@ export default function Library() {
         title={contextMenu().track?.title}
         onClose={() => setContextMenu({ ...contextMenu(), show: false })}
         onDelete={handleDelete}
+      />
+
+      {/* context menu for right clicking playlists */}
+      <ContextMenu
+        show={playlistContextMenu().show}
+        x={playlistContextMenu().x}
+        y={playlistContextMenu().y}
+        title={playlistContextMenu().playlist?.name}
+        deleteLabel="Delete Playlist"
+        onClose={() => setPlaylistContextMenu({ ...playlistContextMenu(), show: false })}
+        onDelete={handleDeletePlaylist}
       />
 
       <Modal
