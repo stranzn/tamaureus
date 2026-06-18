@@ -76,6 +76,7 @@ pub fn run() {
             db::get_tracks,
             db::get_tracks_with_names,
             db::add_track,
+            db::remove_track,
             // playlist functions
             db::get_playlist,
             db::get_playlists_with_previews,
