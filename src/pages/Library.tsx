@@ -35,7 +35,7 @@ interface Playlist {
 }
 
 export default function Library() {
-  const { loadAndPlay, currentPath, isPlaying } = playerStore;
+  const { loadAndPlay, currentPath, isPlaying, pauseAudio, resumeAudio } = playerStore;
   const [tracks, setTracks] = createSignal<Track[]>([]);
   const [playlists, setPlaylists] = createSignal<Playlist[]>([]);
   const [searchQuery, setSearchQuery] = createSignal("");
@@ -300,7 +300,13 @@ export default function Library() {
             {(track) => (
               <div class="flex flex-col group w-32">
                 <div
-                  onClick={() => loadAndPlay(track.file_path, track.title, track.artist_name, track.thumbnail_base64 ?? "", track.thumbnail_mime ?? "")}
+                  onClick={() => {
+                    if (currentPath() === track.file_path) {
+                      isPlaying() ? pauseAudio() : resumeAudio();
+                    } else {
+                      loadAndPlay(track.file_path, track.title, track.artist_name, track.thumbnail_base64 ?? "", track.thumbnail_mime ?? "");
+                    }
+                  }}
                   onContextMenu={(e) => handleContextMenu(e, track)}
                   class={`w-32 h-32 rounded-lg bg-[var(--color-secondary)] overflow-hidden relative cursor-pointer shadow-sm hover:shadow-md transition-all duration-200 ${currentPath() === track.file_path ? 'ring-2 ring-[var(--color-primary)]' : ''}`}
                 >

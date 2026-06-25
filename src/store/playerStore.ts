@@ -93,6 +93,24 @@ function createPlayerStore() {
     }
   };
 
+  const pauseAudio = async () => {
+    try {
+      await invoke('pause');
+      setIsPlaying(false);
+    } catch (e) {
+      console.error("Pause failed:", e);
+    }
+  };
+
+  const resumeAudio = async () => {
+    try {
+      await invoke('resume'); 
+      setIsPlaying(true);
+    } catch (e) {
+      console.error("Resume failed:", e);
+    }
+  };
+
   const setVolumeLevel = async (val: number[]) => {
     setVolume(val);
     const numericVolume = val[0];
@@ -186,6 +204,8 @@ function createPlayerStore() {
     commitSeek,
     seek,
     loadAndPlay,
+    pauseAudio,
+    resumeAudio,
     skip
   };
 }
