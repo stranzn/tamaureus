@@ -2,6 +2,7 @@ import { Router, Route, Navigate } from "@solidjs/router";
 import { Component, lazy, createSignal, onMount, Show, createContext, useContext, JSX } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import RootLayout from "./layouts/root-layout";
+import TitleBar from "./components/title-bar";
 
 // --- Global State Context ---
 const AppStateContext = createContext<{
@@ -43,31 +44,33 @@ const AppContent: Component = () => {
   });
 
   return (
-    <Show fallback={<div class="h-screen flex items-center justify-center">Loading...</div>} when={isReady()}>
-      <Router root={RootLayout}>
-        {/* We use a simple path here; Setup handles its own internal redirect logic */}
-        <Route path="/setup" component={Setup} />
-
-        {/* Protected App Routes */}
-        <Route
-          path="/"
-          component={() => (hasMusicDir() ? <Library /> : <Navigate href="/setup" />)}
-        />
-        <Route
-          path="/listen"
-          component={() => (hasMusicDir() ? <Listen /> : <Navigate href="/setup" />)}
-        />
-        <Route
-          path="/settings"
-          component={() => (hasMusicDir() ? <Settings /> : <Navigate href="/setup" />)}
-        />
-
-        <Route
-          path="/playlist/:id"
-          component={() => (hasMusicDir() ? <Playlist /> : <Navigate href="/setup" />)}
-        />
-      </Router>
-    </Show>
+    <div class="flex h-screen flex-col overflow-hidden">
+      <TitleBar />
+      <Show
+        fallback={<div class="flex flex-1 items-center justify-center">Loading...</div>}
+        when={isReady()}
+      >
+        <Router root={RootLayout}>
+          <Route path="/setup" component={Setup} />
+          <Route
+            path="/"
+            component={() => (hasMusicDir() ? <Library /> : <Navigate href="/setup" />)}
+          />
+          <Route
+            path="/listen"
+            component={() => (hasMusicDir() ? <Listen /> : <Navigate href="/setup" />)}
+          />
+          <Route
+            path="/settings"
+            component={() => (hasMusicDir() ? <Settings /> : <Navigate href="/setup" />)}
+          />
+          <Route
+            path="/playlist/:id"
+            component={() => (hasMusicDir() ? <Playlist /> : <Navigate href="/setup" />)}
+          />
+        </Router>
+      </Show>
+    </div>
   );
 };
 

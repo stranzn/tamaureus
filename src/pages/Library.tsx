@@ -216,11 +216,19 @@ export default function Library() {
 
       {/* Search Bar */}
       <div class="relative mt-5">
-        <Search size={14} class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+        <Search
+          size={14}
+          class="absolute left-3 top-1/2 -translate-y-1/2
+            text-[var(--color-content)]/35 pointer-events-none"
+        />
         <input
           type="text"
           placeholder="Search songs..."
-          class="w-full pl-8 pr-4 py-2 rounded-lg bg-[var(--color-secondary)] text-sm text-[var(--color-content)] placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+          class="w-full bg-[var(--color-card)] border border-[var(--color-muted)]
+            rounded-lg pl-9 pr-4 py-2.5 text-sm text-[var(--color-content)]
+            placeholder:text-[var(--color-content)]/30
+            focus:outline-none focus:border-[var(--color-tertiary)]/50
+            transition-colors"
           value={searchQuery()}
           onInput={(e) => setSearchQuery(e.currentTarget.value)}
         />

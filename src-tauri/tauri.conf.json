@@ -15,7 +15,7 @@
         "title": "Tamaureus",
         "width": 800,
         "height": 600,
-        "decorations": true
+        "decorations": false
       }
     ],
     "security": {
