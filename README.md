@@ -11,7 +11,7 @@ Tamaureus is a cross-platform desktop music player built with the tauri framewor
 - Themes (light/dark/etc)
 - Adapative coloration when adding audio files based on covers
 
-### Planed Features
+### Planned Features
 
 - yt-dlp integration
 - Custom themes
