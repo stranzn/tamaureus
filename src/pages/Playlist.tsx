@@ -10,7 +10,7 @@ import LibraryPicker from "../components/playlist/LibraryPicker";
 export default function Playlist() {
   const params = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { loadAndPlay } = playerStore;
+  const { loadAndPlay, currentPath, isPlaying, pauseAudio, resumeAudio } = playerStore;
 
   // ── Loading ──────────────────────────────────────────────────
   const [isLoading, setIsLoading] = createSignal(true);
@@ -238,9 +238,14 @@ export default function Playlist() {
 
   const handlePlay = (track?: any) => {
     const toPlay = track ?? playlistTracks()[0];
-    if (toPlay) loadAndPlay(toPlay.file_path, toPlay.title, toPlay.artist_name, toPlay.thumbnail_base64, toPlay.thumbnail_mime);
-  };
+    if (!toPlay) return;
 
+    if (currentPath() === toPlay.file_path) {
+      isPlaying() ? pauseAudio() : resumeAudio();
+    } else {
+      loadAndPlay(toPlay.file_path, toPlay.title, toPlay.artist_name, toPlay.thumbnail_base64, toPlay.thumbnail_mime);
+    }
+  };
 
   // Does a simple shuffle but we probably have to change it when we implement our queue ****
   const handleShuffle = () => {
@@ -302,6 +307,8 @@ export default function Playlist() {
             <PlaylistTrackList
               tracks={playlistTracks()}
               isEditing={false}
+              currentPath={currentPath()}
+              isPlaying={isPlaying()}
               onPlay={handlePlay}
             />
           }

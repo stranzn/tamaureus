@@ -32,7 +32,8 @@ export default function PlaylistHeader(props: Props) {
       <div class="flex items-center justify-between mb-6">
         <button
           onclick={props.onBack}
-          class="flex items-center gap-1.5 text-xs text-gray-500 hover:text-[var(--color-primary)] transition-colors"
+          class="flex items-center gap-1.5 text-xs text-[var(--color-secondary)]
+            hover:text-[var(--color-content)] transition-colors"
         >
           <ArrowLeft size={14} />
           Back to Library
@@ -42,7 +43,10 @@ export default function PlaylistHeader(props: Props) {
           <Show when={!props.isEditing}>
             <button
               onclick={props.onEdit}
-              class="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm text-gray-400 hover:text-white border border-white/10 hover:border-white/20 transition-all"
+              class="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm
+                text-[var(--color-secondary)] hover:text-[var(--color-content)]
+                border border-[var(--color-muted)] hover:border-[var(--color-content)]/20
+                transition-all"
             >
               <Pencil size={13} />
               Edit
@@ -52,7 +56,9 @@ export default function PlaylistHeader(props: Props) {
           <Show when={props.isEditing}>
             <button
               onclick={props.onCancel}
-              class="px-4 py-1.5 rounded-full text-sm text-gray-400 hover:text-white hover:bg-white/8 transition-all"
+              class="px-4 py-1.5 rounded-full text-sm
+                text-[var(--color-secondary)] hover:text-[var(--color-content)]
+                hover:bg-[var(--color-muted)]/60 transition-all"
             >
               Cancel
             </button>
@@ -62,7 +68,7 @@ export default function PlaylistHeader(props: Props) {
               class={`flex items-center gap-1.5 px-5 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 ${
                 props.saveSuccess
                   ? "bg-green-500 text-white"
-                  : "bg-[var(--color-primary)] text-white hover:opacity-90 active:scale-95"
+                  : "bg-[var(--color-tertiary)] text-white hover:opacity-90 active:scale-95"
               }`}
             >
               <Show when={props.saveSuccess}><Check size={14} /></Show>
@@ -93,32 +99,31 @@ export default function PlaylistHeader(props: Props) {
             class="w-full h-full"
           />
 
-          {/* Edit hover overlay — pointer-events-none on the bg, but buttons need pointer events */}
-            <Show when={props.isEditing}>
-              <div class="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                <Camera size={26} class="text-white" />
-                <span class="text-white text-xs font-medium">Change cover</span>
+          <Show when={props.isEditing}>
+            <div class="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2
+              opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+              <Camera size={26} class="text-white" />
+              <span class="text-white text-xs font-medium">Change cover</span>
 
-                {/* Remove button — only shown when a custom cover is set */}
-                <Show when={props.coverAssetUrl}>
-                  <button
-                    type="button"
-                    onclick={(e) => {
-                      e.stopPropagation(); // don't trigger onCoverClick
-                      props.onCoverRemove();
-                    }}
-                    class="mt-1 text-[11px] text-red-400 hover:text-red-300 transition-colors pointer-events-auto"
-                  >
-                    Remove cover
-                  </button>
-                </Show>
-              </div>
-            </Show>
+              <Show when={props.coverAssetUrl}>
+                <button
+                  type="button"
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    props.onCoverRemove();
+                  }}
+                  class="mt-1 text-[11px] text-red-400 hover:text-red-300 transition-colors pointer-events-auto"
+                >
+                  Remove cover
+                </button>
+              </Show>
+            </div>
+          </Show>
         </button>
 
         {/* Metadata */}
         <div class="flex-1 min-w-0 pb-1">
-          <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500 mb-3">
+          <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--color-secondary)] mb-3">
             Playlist
           </p>
 
@@ -133,11 +138,13 @@ export default function PlaylistHeader(props: Props) {
           >
             <div class="flex items-center gap-2 mb-2">
               <input
-                class="text-[2rem] font-bold leading-tight bg-transparent border-b-2 border-[var(--color-primary)] text-[var(--color-content)] outline-none flex-1 min-w-0"
+                class="text-[2rem] font-bold leading-tight bg-transparent
+                  border-b-2 border-[var(--color-tertiary)]
+                  text-[var(--color-content)] outline-none flex-1 min-w-0"
                 value={props.name}
                 onInput={(e) => props.onNameChange(e.currentTarget.value)}
               />
-              <Pencil size={15} class="text-gray-500 shrink-0" />
+              <Pencil size={15} class="text-[var(--color-secondary)] shrink-0" />
             </div>
           </Show>
 
@@ -146,45 +153,50 @@ export default function PlaylistHeader(props: Props) {
             when={props.isEditing}
             fallback={
               <Show when={props.description}>
-                <p class="text-sm text-gray-400 mb-4">{props.description}</p>
+                <p class="text-sm text-[var(--color-secondary)] mb-4">{props.description}</p>
               </Show>
             }
           >
             <div class="flex items-start gap-2 mb-5">
               <textarea
                 rows={2}
-                class="text-sm bg-transparent border-b border-[var(--color-primary)]/60 text-gray-300 outline-none resize-none flex-1 placeholder-gray-600"
+                class="text-sm bg-transparent border-b border-[var(--color-tertiary)]/50
+                  text-[var(--color-content)] outline-none resize-none flex-1
+                  placeholder:text-[var(--color-content)]/30"
                 value={props.description}
                 onInput={(e) => props.onDescriptionChange(e.currentTarget.value)}
                 placeholder="Add a description…"
               />
-              <Pencil size={13} class="text-gray-600 shrink-0 mt-1" />
+              <Pencil size={13} class="text-[var(--color-secondary)] shrink-0 mt-1" />
             </div>
           </Show>
 
           {/* Stats + Play + Shuffle */}
           <div class="flex items-center gap-3">
             <Show when={!props.isEditing && props.trackCount > 0}>
-              {/* Play button */}
               <button
                 onclick={props.onPlay}
-                class="flex items-center gap-2 px-6 py-2.5 rounded-full bg-[var(--color-primary)] text-white font-semibold text-sm hover:opacity-90 active:scale-95 transition-all"
+                class="flex items-center gap-2 px-6 py-2.5 rounded-full
+                  bg-[var(--color-tertiary)] text-white font-semibold text-sm
+                  hover:opacity-90 active:scale-95 transition-all"
               >
                 <Play size={16} fill="currentColor" />
                 Play
               </button>
 
-              {/* Shuffle button */}
               <button
                 onclick={props.onShuffle}
-                class="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-gray-300 border border-white/10 hover:border-white/25 hover:text-white active:scale-95 transition-all"
+                class="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold
+                  text-[var(--color-secondary)] border border-[var(--color-muted)]
+                  hover:border-[var(--color-content)]/25 hover:text-[var(--color-content)]
+                  active:scale-95 transition-all"
               >
                 <Shuffle size={16} />
                 Shuffle
               </button>
             </Show>
 
-            <p class="text-xs text-gray-500">
+            <p class="text-xs text-[var(--color-secondary)]">
               {props.trackCount} {props.trackCount === 1 ? "song" : "songs"}
               <Show when={props.trackCount > 0}> · {props.totalDuration}</Show>
             </p>

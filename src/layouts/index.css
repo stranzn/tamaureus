@@ -2,65 +2,62 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Default (light) theme */
+/* ─── Light ──────────────────────────────────────────────────────────────── */
 @theme {
-  --color-primary: #4b5563;     /* highlight color / active tab */
-  --color-secondary: #d1d5db;   /* secondary elements, borders, inactive tabs */
-  --color-tertiary: #94a3b8;    /* subtle details, icons, muted text */
-  --color-surface: #f8fafc;     /* menu background, cards, panels */
-  --color-background: #f8fafc;  /* main page background */
-  --color-accent: #64748b;      /* buttons, focus rings, links */
-  --color-muted: #e5e5e5;       /* borders, separators, hover backgrounds */
-  --color-content: #0f172a;     /* main text color */
-}
+  /* Surfaces — each step is visibly distinct so depth reads naturally */
+  --color-background: #f7f7f8;   /* main page canvas */
+  --color-surface:    #eeeef2;   /* sidebar / panels */
+  --color-card:       #ffffff;   /* library items, track rows */
+  --color-muted:      #dfdfe8;   /* borders, separators, hover backgrounds */
 
-/* Dark theme */
-.dark {
   /* Text */
-  --color-primary: #e6e7eb;     /* main titles */
-  --color-secondary: #a1a1aa;   /* artists, metadata */
-  --color-tertiary: #71717a;    /* icons, subtle labels */
+  --color-primary:    #09090b;   /* headings, track titles */
+  --color-content:    #18181b;   /* body text, labels */
+  --color-secondary:  #71717a;   /* artists, metadata, timestamps */
 
-  /* Surfaces */
-  --color-background: #151518;  /* main area */
-  --color-surface: #1d1e22;     /* sidebar / panels */
-  --color-card: #24262c;        /* library items */
-
-  /* UI */
-  --color-accent: #c9ccd6;      /* focus, sliders, active icons */
-  --color-muted: #2d2f36;       /* borders, separators */
-
-  /* Body text */
-  --color-content: #d4d6db;
+  /* Brand accent — used for active nav, progress bars, highlights */
+  --color-tertiary:   #6366f1;
+  --color-accent:     #818cf8;   /* focus rings, softer hover tints */
 }
 
+/* ─── Dark ───────────────────────────────────────────────────────────────── */
+.dark {
+  --color-background: #141416;
+  --color-surface:    #1c1c1f;
+  --color-card:       #232326;
+  --color-muted:      #38383f;   /* slightly lighter than before so borders read */
 
+  --color-primary:    #fafafa;
+  --color-content:    #e4e4e7;
+  --color-secondary:  #a1a1aa;
 
+  --color-tertiary:   #818cf8;   /* indigo — visible against dark surfaces */
+  --color-accent:     #a5b4fc;
+}
 
-/* Midnight Theme */
+/* ─── Midnight ───────────────────────────────────────────────────────────── */
 .midnight {
-  --color-primary: #a5b4fc;
-  --color-secondary: #4338ca;
-  --color-tertiary: #6366f1;
-  --color-surface: #1e1b4b;
-  --color-background: #0f172a;
-  --color-accent: #818cf8;
-  --color-muted: #312e81;
-  --color-content: #e0e7ff;
+  --color-background: #0d0f1e;
+  --color-surface:    #131528;
+  --color-card:       #191c36;
+  --color-muted:      #22254a;
+
+  --color-primary:    #eef2ff;
+  --color-content:    #e0e7ff;
+  --color-secondary:  #a5b4fc;   /* lavender — works as muted text on deep indigo */
+
+  --color-tertiary:   #a78bfa;   /* violet — distinct from dark theme's indigo */
+  --color-accent:     #c4b5fd;
 }
 
-
-
-
-/* Custom Scrollbar Styles */
+/* ─── Scrollbar ──────────────────────────────────────────────────────────── */
 @layer base {
-
   ::-webkit-scrollbar-track {
     background: transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    background-color: var(--color-tertiary);
+    background-color: var(--color-muted);
     border-radius: 9999px;
   }
 
@@ -70,9 +67,6 @@
 
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--color-tertiary) transparent;
+    scrollbar-color: var(--color-muted) transparent;
   }
 }
-
-
-

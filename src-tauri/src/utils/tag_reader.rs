@@ -6,6 +6,8 @@ use std::path::Path;
 
 use crate::models::ExtractedTrack;
 
+const DEFAULT_COVER: &[u8] = include_bytes!("../../../public/default-cover.png");
+
 #[allow(dead_code)]
 pub fn extract_track_metadata(path: &str) -> Result<ExtractedTrack, String> {
     let path = Path::new(&path);
@@ -58,7 +60,8 @@ pub fn extract_track_metadata(path: &str) -> Result<ExtractedTrack, String> {
         let base64 = general_purpose::STANDARD.encode(&pic.data());
         (Some(base64), mime)
     } else {
-        (None, None)
+        let base64 = general_purpose::STANDARD.encode(DEFAULT_COVER);
+        (Some(base64), Some("image/png".to_string()))
     };
 
     Ok(ExtractedTrack {
