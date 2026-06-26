@@ -1,7 +1,7 @@
-use sqlx::SqlitePool;
-use tauri::State;
 use crate::models::AppState;
 use crate::playback_queue::{AppQueue, RepeatMode};
+use sqlx::SqlitePool;
+use tauri::State;
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -31,80 +31,104 @@ pub async fn queue_get(state: State<'_, AppState>) -> Result<crate::models::Queu
 }
 
 #[tauri::command]
-pub async fn queue_add_track(
-    track_id: i64,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
+pub async fn queue_add_track(track_id: i64, state: State<'_, AppState>) -> Result<(), String> {
     let mut queue = state.queue.lock().await;
 
-    // check if the last track in the queue is the same
-    let last_track_id: Option<i64> = sqlx::query_scalar!(
-        "SELECT track_id FROM queue_items ORDER BY position DESC LIMIT 1"
-    )
-    .fetch_optional(&state.db)
-    .await
-    .map_err(|e| e.to_string())?;
+    let last_track_id: Option<i64> =
+        sqlx::query_scalar!("SELECT track_id FROM queue_items ORDER BY position DESC LIMIT 1")
+            .fetch_optional(&state.db)
+            .await
+            .map_err(|e| e.to_string())?;
 
     if last_track_id == Some(track_id) {
-        return Ok(()); // silently skip, not an error
+        return Ok(());
     }
 
-    let next_pos: i64 = sqlx::query_scalar!(
-        "SELECT COALESCE(MAX(position) + 1, 0) FROM queue_items"
+    let mut tx = state.db.begin().await.map_err(|e| e.to_string())?;
+
+    sqlx::query!("UPDATE queue_items SET position = -(position + 1)")
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    sqlx::query!(
+        r#"
+        WITH ranked AS (
+            SELECT id, ROW_NUMBER() OVER (ORDER BY position) - 1 AS new_pos
+            FROM queue_items
+        )
+        UPDATE queue_items
+        SET position = (SELECT new_pos FROM ranked WHERE ranked.id = queue_items.id)
+        "#
     )
-    .fetch_one(&state.db)
+    .execute(&mut *tx)
     .await
     .map_err(|e| e.to_string())?;
+
+    let next_pos: i64 =
+        sqlx::query_scalar!("SELECT COALESCE(MAX(position) + 1, 0) FROM queue_items")
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(|e| e.to_string())?;
 
     sqlx::query!(
         "INSERT INTO queue_items (track_id, position) VALUES (?, ?)",
         track_id,
         next_pos
     )
-    .execute(&state.db)
+    .execute(&mut *tx)
     .await
     .map_err(|e| e.to_string())?;
 
+    tx.commit().await.map_err(|e| e.to_string())?;
     queue.reload_from_db(&state.db).await
 }
 
 #[tauri::command]
-pub async fn queue_play_now(
-    track_id: i64,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
+pub async fn queue_play_now(track_id: i64, state: State<'_, AppState>) -> Result<(), String> {
     let mut queue = state.queue.lock().await;
     let db = &state.db;
 
-    repack_positions(db).await?;
-    queue.reload_from_db(db).await?;
+    let mut tx = db.begin().await.map_err(|e| e.to_string())?;
 
-    // check if the last track in the queue is the same
-    let last_track_id: Option<i64> = sqlx::query_scalar!(
-        "SELECT track_id FROM queue_items ORDER BY position DESC LIMIT 1"
+    // repack: go negative first to avoid intermediate conflicts
+    sqlx::query!("UPDATE queue_items SET position = -(position + 1)")
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    sqlx::query!(
+        r#"
+        WITH ranked AS (
+            SELECT id, ROW_NUMBER() OVER (ORDER BY position) - 1 AS new_pos
+            FROM queue_items
+        )
+        UPDATE queue_items
+        SET position = (SELECT new_pos FROM ranked WHERE ranked.id = queue_items.id)
+        "#
     )
-    .fetch_optional(&state.db)
+    .execute(&mut *tx)
     .await
     .map_err(|e| e.to_string())?;
 
-    if last_track_id == Some(track_id) {
-        return Ok(()); // silently skip, not an error
-    }
-
     let insert_pos = queue.current_position as i64;
 
-    let mut tx = db.begin().await.map_err(|e| e.to_string())?;
-
-    // shift everything at or after current position down by one
+    // shift: go negative first on affected rows before incrementing
     sqlx::query!(
-        "UPDATE queue_items SET position = position + 1 WHERE position >= ?",
+        "UPDATE queue_items SET position = -(position + 2) WHERE position >= ?",
         insert_pos
     )
     .execute(&mut *tx)
     .await
     .map_err(|e| e.to_string())?;
 
-    // insert new track at current position
+    sqlx::query!(
+        "UPDATE queue_items SET position = -(position + 1) WHERE position < 0"
+    )
+    .execute(&mut *tx)
+    .await
+    .map_err(|e| e.to_string())?;
+
     sqlx::query!(
         "INSERT INTO queue_items (track_id, position) VALUES (?, ?)",
         track_id,
@@ -137,13 +161,10 @@ pub async fn queue_remove_track(
     .await
     .map_err(|e| e.to_string())?;
 
-    sqlx::query!(
-        "DELETE FROM queue_items WHERE id = ?",
-        queue_item_id
-    )
-    .execute(db)
-    .await
-    .map_err(|e| e.to_string())?;
+    sqlx::query!("DELETE FROM queue_items WHERE id = ?", queue_item_id)
+        .execute(db)
+        .await
+        .map_err(|e| e.to_string())?;
 
     repack_positions(db).await?;
 
@@ -172,10 +193,7 @@ pub async fn queue_clear(state: State<'_, AppState>) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn queue_set_position(
-    position: usize,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
+pub async fn queue_set_position(position: usize, state: State<'_, AppState>) -> Result<(), String> {
     let mut queue = state.queue.lock().await;
 
     if queue.items.is_empty() {
@@ -194,10 +212,7 @@ pub async fn queue_set_position(
 }
 
 #[tauri::command]
-pub async fn queue_set_repeat(
-    mode: String,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
+pub async fn queue_set_repeat(mode: String, state: State<'_, AppState>) -> Result<(), String> {
     let mut queue = state.queue.lock().await;
 
     queue.repeat_mode = match mode.as_str() {
