@@ -1,6 +1,6 @@
-import { createSignal, createMemo, createRoot, onCleanup } from 'solid-js';
-import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
+import { createSignal, createMemo, createRoot, onCleanup } from "solid-js";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
 /*
   Features left to do:
@@ -8,13 +8,12 @@ import { listen } from '@tauri-apps/api/event';
   - Handle end of track (auto play next?)
 */
 
-
 function createPlayerStore() {
   // ── Core playback state ────────────────────────────────────────────────
   const [isPlaying, setIsPlaying] = createSignal(false);
   const [currentPath, setCurrentPath] = createSignal<string | null>(null);
   const [duration, setDuration] = createSignal(0);
-  const [currentTime, setCurrentTime] = createSignal(0);       // real backend time
+  const [currentTime, setCurrentTime] = createSignal(0); // real backend time
   const [previewTime, setPreviewTime] = createSignal<number | null>(null); // during drag
   const [isDragging, setIsDragging] = createSignal(false);
 
@@ -28,25 +27,28 @@ function createPlayerStore() {
   const [songTitle, setSongTitle] = createSignal("Song Title");
   const [artistName, setArtistName] = createSignal("Artist Name");
   const [albumCover, setAlbumCover] = createSignal(
-    "https://media.tenor.com/ifD1GaekwpoAAAAi/uma-musume-agnes-tachyon.gif"
+    "https://media.tenor.com/ifD1GaekwpoAAAAi/uma-musume-agnes-tachyon.gif",
   );
 
-  // Versioning to prevent stale position updates after seek 
+  // Versioning to prevent stale position updates after seek
   let localVersion = 0;
 
   // Backend position listener
   const setupListener = async () => {
-    const unlisten = await listen<[number, number]>('audio_position', (event) => {
-      const [pos, incomingVersion] = event.payload;
+    const unlisten = await listen<[number, number]>(
+      "audio_position",
+      (event) => {
+        const [pos, incomingVersion] = event.payload;
 
-      // Only accept this update if:
-      // 1. We're not currently dragging
-      // 2. This is not an old/stale update from before our last seek
-      if (!isDragging() && incomingVersion >= localVersion) {
-        setCurrentTime(pos);
-        localVersion = incomingVersion;
-      }
-    });
+        // Only accept this update if:
+        // 1. We're not currently dragging
+        // 2. This is not an old/stale update from before our last seek
+        if (!isDragging() && incomingVersion >= localVersion) {
+          setCurrentTime(pos);
+          localVersion = incomingVersion;
+        }
+      },
+    );
 
     onCleanup(() => unlisten());
   };
@@ -61,9 +63,9 @@ function createPlayerStore() {
 
     try {
       if (shouldPlay) {
-        await invoke('resume');
+        await invoke("resume");
       } else {
-        await invoke('pause');
+        await invoke("pause");
       }
       setIsPlaying(shouldPlay);
     } catch (e) {
@@ -71,9 +73,15 @@ function createPlayerStore() {
     }
   };
 
-  const loadAndPlay = async (path: string, title: string, artist: string, thumbnailBase64: string, thumbnailMime: string) => {
+  const loadAndPlay = async (
+    path: string,
+    title: string,
+    artist: string,
+    thumbnailBase64: string,
+    thumbnailMime: string,
+  ) => {
     try {
-      const realDuration = await invoke<number>('play_track', { path });
+      const realDuration = await invoke<number>("play_track", { path });
 
       // Reset sync state for new track
       localVersion = 0;
@@ -99,30 +107,24 @@ function createPlayerStore() {
 
     if (numericVolume > 0) setIsMuted(false);
 
-    await invoke('set_volume', { volume: numericVolume / 100 });
+    await invoke("set_volume", { volume: numericVolume / 100 });
   };
 
   const toggleMute = async () => {
     const currentVol = volume()[0];
     if (!isMuted()) {
       setIsMuted(true);
-      await invoke('set_volume', { volume: 0.0 });
+      await invoke("set_volume", { volume: 0.0 });
     } else {
       setIsMuted(false);
-      await invoke('set_volume', { volume: currentVol / 100 });
+      await invoke("set_volume", { volume: currentVol / 100 });
     }
   };
 
-  const skip = async (direction: 'next' | 'prev') => {
-    try {
-      await invoke('stop_track');
-      // TODO: implement actual next/prev track selection logic
-      setIsPlaying(false);
-      setCurrentTime(0);
-      setPreviewTime(null);
-    } catch (e) {
-      console.error("Skip failed:", e);
-    }
+  const skip = async (direction: "next" | "prev") => {
+    const { queueStore } = await import("./queueStore");
+    if (direction === "next") await queueStore.skipNext();
+    else await queueStore.skipPrev();
   };
 
   // Called continuously during drag (live preview)
@@ -172,8 +174,8 @@ function createPlayerStore() {
     artistName,
     albumCover,
     duration,
-    currentTime,       // real backend time
-    displayTime,       // UI-facing time
+    currentTime, // real backend time
+    displayTime, // UI-facing time
     currentPath,
     isDragging,
 
@@ -186,7 +188,7 @@ function createPlayerStore() {
     commitSeek,
     seek,
     loadAndPlay,
-    skip
+    skip,
   };
 }
 

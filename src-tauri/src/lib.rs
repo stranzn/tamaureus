@@ -1,5 +1,6 @@
 mod db;
 mod models;
+mod playback_queue;
 mod player;
 mod user_config;
 mod utils;
@@ -29,13 +30,11 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-            
             let db_url = get_db_path(&app.handle());
 
-            let connect_options =
-                SqliteConnectOptions::from_str(&db_url)?
-                    .create_if_missing(true) // ← This guarantees file creation
-                    .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal);
+            let connect_options = SqliteConnectOptions::from_str(&db_url)?
+                .create_if_missing(true) // ← This guarantees file creation
+                .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal);
 
             let pool = tauri::async_runtime::block_on(
                 SqlitePoolOptions::new()
@@ -45,10 +44,21 @@ pub fn run() {
             .expect("Failed to create DB pool");
 
             // Run migrations
+            // temporarily commenting this out
             tauri::async_runtime::block_on(sqlx::migrate!().run(&pool))
                 .expect("Failed to run migrations");
 
-            app.manage(models::AppState { db: pool });
+            let app_queue = tauri::async_runtime::block_on(
+                crate::playback_queue::AppQueue::load_from_db(&pool),
+            )
+            .expect("Failed to load queue");
+
+            let state = models::AppState {
+                db: pool,
+                queue: std::sync::Arc::new(tokio::sync::Mutex::new(app_queue)),
+            };
+
+            app.manage(state);
 
             // Manage audio player
             let audio_player = AudioPlayer::new(app.handle().clone());
@@ -84,6 +94,16 @@ pub fn run() {
             db::save_playlist,
             db::update_playlist,
             db::delete_playlist,
+            // queue functions
+            playback_queue::commands::queue_get,
+            playback_queue::commands::queue_add_track,
+            playback_queue::commands::queue_play_now,
+            playback_queue::commands::queue_remove_track,
+            playback_queue::commands::queue_clear,
+            playback_queue::commands::queue_set_position,
+            playback_queue::commands::queue_set_repeat,
+            playback_queue::commands::queue_toggle_shuffle,
+            playback_queue::commands::queue_move_track,
             // user config functions
             user_config::save_music_dir,
             user_config::load_music_dir,

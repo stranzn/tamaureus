@@ -6,6 +6,7 @@ mod models;
 mod user_config;
 mod player;
 mod utils;
+mod playback_queue;
 
 fn main() {
     tamaureus_lib::run()
