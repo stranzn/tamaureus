@@ -37,6 +37,18 @@ pub async fn queue_add_track(
 ) -> Result<(), String> {
     let mut queue = state.queue.lock().await;
 
+    // check if the last track in the queue is the same
+    let last_track_id: Option<i64> = sqlx::query_scalar!(
+        "SELECT track_id FROM queue_items ORDER BY position DESC LIMIT 1"
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    if last_track_id == Some(track_id) {
+        return Ok(()); // silently skip, not an error
+    }
+
     let next_pos: i64 = sqlx::query_scalar!(
         "SELECT COALESCE(MAX(position) + 1, 0) FROM queue_items"
     )
@@ -63,6 +75,21 @@ pub async fn queue_play_now(
 ) -> Result<(), String> {
     let mut queue = state.queue.lock().await;
     let db = &state.db;
+
+    repack_positions(db).await?;
+    queue.reload_from_db(db).await?;
+
+    // check if the last track in the queue is the same
+    let last_track_id: Option<i64> = sqlx::query_scalar!(
+        "SELECT track_id FROM queue_items ORDER BY position DESC LIMIT 1"
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    if last_track_id == Some(track_id) {
+        return Ok(()); // silently skip, not an error
+    }
 
     let insert_pos = queue.current_position as i64;
 

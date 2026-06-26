@@ -1,8 +1,8 @@
 use rodio::{Sink, Source};
 use std::fs::File;
 use std::io::BufReader;
-use std::sync::mpsc::{channel, Sender};
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::mpsc::{channel, Sender};
 use std::thread;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, State};
@@ -12,6 +12,7 @@ static SEEK_VERSION: AtomicU32 = AtomicU32::new(0);
 
 pub enum AudioCommand {
     Play(String, Sender<Result<f64, String>>),
+    Load(String, Sender<Result<f64, String>>),
     Pause,
     Resume,
     Stop,
@@ -52,8 +53,7 @@ fn start_audio_thread(app_handle: AppHandle) -> Sender<AudioCommand> {
                             let reader = BufReader::new(file);
                             let file_len = reader.get_ref().metadata().ok().map(|m| m.len()); // optional but helpful
 
-                            let mut builder = rodio::Decoder::builder()
-                                .with_data(reader);
+                            let mut builder = rodio::Decoder::builder().with_data(reader);
 
                             // Very important for seeking support
                             if let Some(len) = file_len {
@@ -61,7 +61,8 @@ fn start_audio_thread(app_handle: AppHandle) -> Sender<AudioCommand> {
                             }
                             builder = builder.with_seekable(true); // ← enables seeking
 
-                            let source = builder.build()
+                            let source = builder
+                                .build()
                                 .map_err(|e| format!("Decoder build failed: {}", e))?;
 
                             let duration = source
@@ -74,6 +75,41 @@ fn start_audio_thread(app_handle: AppHandle) -> Sender<AudioCommand> {
                             sink.play();
 
                             // Reset version on new track
+                            SEEK_VERSION.store(0, Ordering::SeqCst);
+
+                            Ok(duration)
+                        })();
+
+                        let _ = reply.send(result);
+                    }
+                    // load song without playing
+                    AudioCommand::Load(path, reply) => {
+                        let result: Result<f64, String> = (|| {
+                            let file = File::open(&path)
+                                .map_err(|e| format!("Failed to open file: {}", e))?;
+
+                            let reader = BufReader::new(file);
+                            let file_len = reader.get_ref().metadata().ok().map(|m| m.len());
+
+                            let mut builder = rodio::Decoder::builder().with_data(reader);
+                            if let Some(len) = file_len {
+                                builder = builder.with_byte_len(len);
+                            }
+                            builder = builder.with_seekable(true);
+
+                            let source = builder
+                                .build()
+                                .map_err(|e| format!("Decoder build failed: {}", e))?;
+
+                            let duration = source
+                                .total_duration()
+                                .map(|d| d.as_secs_f64())
+                                .unwrap_or(0.0);
+
+                            sink.stop();
+                            sink.append(source);
+                            sink.pause(); // load but don't play
+
                             SEEK_VERSION.store(0, Ordering::SeqCst);
 
                             Ok(duration)
@@ -129,15 +165,35 @@ impl AudioPlayer {
     pub fn play(&self, path: String) -> Result<f64, String> {
         let (reply_tx, reply_rx) = channel();
         let _ = self.tx.send(AudioCommand::Play(path, reply_tx));
-        reply_rx.recv().unwrap_or_else(|_| Err("Thread disconnected".into()))
+        reply_rx
+            .recv()
+            .unwrap_or_else(|_| Err("Thread disconnected".into()))
     }
 
-    pub fn pause(&self) { let _ = self.tx.send(AudioCommand::Pause); }
-    pub fn resume(&self) { let _ = self.tx.send(AudioCommand::Resume); }
-    pub fn stop(&self) { let _ = self.tx.send(AudioCommand::Stop); }
-    pub fn set_volume(&self, volume: f32) { let _ = self.tx.send(AudioCommand::SetVolume(volume)); }
-    pub fn seek(&self, seconds: f32) { let _ = self.tx.send(AudioCommand::Seek(seconds)); }
-    
+    pub fn load(&self, path: String) -> Result<f64, String> {
+        let (reply_tx, reply_rx) = channel();
+        let _ = self.tx.send(AudioCommand::Load(path, reply_tx));
+        reply_rx
+            .recv()
+            .unwrap_or_else(|_| Err("Thread disconnected".into()))
+    }
+
+    pub fn pause(&self) {
+        let _ = self.tx.send(AudioCommand::Pause);
+    }
+    pub fn resume(&self) {
+        let _ = self.tx.send(AudioCommand::Resume);
+    }
+    pub fn stop(&self) {
+        let _ = self.tx.send(AudioCommand::Stop);
+    }
+    pub fn set_volume(&self, volume: f32) {
+        let _ = self.tx.send(AudioCommand::SetVolume(volume));
+    }
+    pub fn seek(&self, seconds: f32) {
+        let _ = self.tx.send(AudioCommand::Seek(seconds));
+    }
+
     pub fn get_position_secs(&self) -> f32 {
         let (reply_tx, reply_rx) = channel();
         let _ = self.tx.send(AudioCommand::GetPosition(reply_tx));
@@ -147,31 +203,65 @@ impl AudioPlayer {
     pub fn get_playback_state(&self) -> PlaybackState {
         let (reply_tx, reply_rx) = channel();
         let _ = self.tx.send(AudioCommand::GetState(reply_tx));
-        reply_rx.recv().unwrap_or(PlaybackState { is_paused: true, is_empty: true, volume: 0.0 })
+        reply_rx.recv().unwrap_or(PlaybackState {
+            is_paused: true,
+            is_empty: true,
+            volume: 0.0,
+        })
     }
 }
 
 // Tauri commands
 #[allow(dead_code)]
-#[tauri::command] pub fn play_track(path: String, player: State<'_, AudioPlayer>) -> Result<f64, String> { player.play(path) }
+#[tauri::command]
+pub fn play_track(path: String, player: State<'_, AudioPlayer>) -> Result<f64, String> {
+    player.play(path)
+}
 
 #[allow(dead_code)]
-#[tauri::command] pub fn pause(player: State<'_, AudioPlayer>) { player.pause(); }
+#[tauri::command]
+pub fn load_track(path: String, player: State<'_, AudioPlayer>) -> Result<f64, String> {
+    player.load(path)
+}
 
 #[allow(dead_code)]
-#[tauri::command] pub fn resume(player: State<'_, AudioPlayer>) { player.resume(); }
+#[tauri::command]
+pub fn pause(player: State<'_, AudioPlayer>) {
+    player.pause();
+}
 
 #[allow(dead_code)]
-#[tauri::command] pub fn stop_track(player: State<'_, AudioPlayer>) { player.stop(); }
+#[tauri::command]
+pub fn resume(player: State<'_, AudioPlayer>) {
+    player.resume();
+}
 
 #[allow(dead_code)]
-#[tauri::command] pub fn set_volume(volume: f32, player: State<'_, AudioPlayer>) { player.set_volume(volume); }
+#[tauri::command]
+pub fn stop_track(player: State<'_, AudioPlayer>) {
+    player.stop();
+}
 
 #[allow(dead_code)]
-#[tauri::command] pub fn seek_track(seconds: f32, player: State<'_, AudioPlayer>) { player.seek(seconds); }
+#[tauri::command]
+pub fn set_volume(volume: f32, player: State<'_, AudioPlayer>) {
+    player.set_volume(volume);
+}
 
 #[allow(dead_code)]
-#[tauri::command] pub fn get_position(player: State<'_, AudioPlayer>) -> f32 { player.get_position_secs() }
+#[tauri::command]
+pub fn seek_track(seconds: f32, player: State<'_, AudioPlayer>) {
+    player.seek(seconds);
+}
 
 #[allow(dead_code)]
-#[tauri::command] pub fn get_playback_state(player: State<'_, AudioPlayer>) -> PlaybackState { player.get_playback_state() }
+#[tauri::command]
+pub fn get_position(player: State<'_, AudioPlayer>) -> f32 {
+    player.get_position_secs()
+}
+
+#[allow(dead_code)]
+#[tauri::command]
+pub fn get_playback_state(player: State<'_, AudioPlayer>) -> PlaybackState {
+    player.get_playback_state()
+}

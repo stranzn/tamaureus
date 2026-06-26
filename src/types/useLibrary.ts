@@ -5,6 +5,7 @@ import { open, ask } from "@tauri-apps/plugin-dialog";
 import { musicUpload } from "../components/modals/music_upload";
 import { playerStore } from "../store/playerStore";
 import type { Track, Playlist } from "../types/library";
+import { queueStore } from "../store/queueStore";
 
 export function useLibrary() {
   const { loadAndPlay, currentPath, isPlaying, pauseAudio, resumeAudio } = playerStore;
@@ -171,13 +172,21 @@ export function useLibrary() {
     if (currentPath() === track.file_path) {
       isPlaying() ? pauseAudio() : resumeAudio();
     } else {
-      loadAndPlay(
-        track.file_path,
-        track.title,
-        track.artist_name,
-        track.thumbnail_base64 ?? "",
-        track.thumbnail_mime ?? ""
-      );
+       queueStore.playNow({
+        track_id: track.id,
+        file_path: track.file_path,
+        title: track.title,
+        artist_name: track.artist_name,
+        thumbnail_base64: track.thumbnail_base64 ?? "",
+        thumbnail_mime: track.thumbnail_mime ?? ""
+       })
+      // loadAndPlay(
+      //   track.file_path,
+      //   track.title,
+      //   track.artist_name,
+      //   track.thumbnail_base64 ?? "",
+      //   track.thumbnail_mime ?? ""
+      // );
     }
   };
 

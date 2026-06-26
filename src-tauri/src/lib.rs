@@ -114,6 +114,7 @@ pub fn run() {
             utils::read_file_as_base64,
             // player functions
             player::play_track,
+            player::load_track,
             player::pause,
             player::resume,
             player::stop_track,

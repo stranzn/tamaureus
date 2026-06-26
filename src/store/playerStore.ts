@@ -103,7 +103,7 @@ function createPlayerStore() {
 
   const pauseAudio = async () => {
     try {
-      await invoke('pause');
+      await invoke("pause");
       setIsPlaying(false);
     } catch (e) {
       console.error("Pause failed:", e);
@@ -112,7 +112,7 @@ function createPlayerStore() {
 
   const resumeAudio = async () => {
     try {
-      await invoke('resume'); 
+      await invoke("resume");
       setIsPlaying(true);
     } catch (e) {
       console.error("Resume failed:", e);
@@ -197,6 +197,14 @@ function createPlayerStore() {
     currentPath,
     isDragging,
 
+    // setters
+    setCurrentPath,
+    setSongTitle,
+    setArtistName,
+    setAlbumCover,
+    setDuration,
+    setIsPlaying,
+
     // Actions
     setIsDragging,
     togglePlay,
@@ -208,7 +216,6 @@ function createPlayerStore() {
     loadAndPlay,
     pauseAudio,
     resumeAudio,
-    skip
     skip,
   };
 }

@@ -3,6 +3,8 @@ import SongInfo from './player_components/song-info';
 import Controls from './player_components/controls';
 import Volume from './player_components/volume';
 
+import { queueStore } from '../store/queueStore';
+
 export default function Player() {
   const { 
     isPlaying, volume, isMuted, 
@@ -41,8 +43,8 @@ export default function Player() {
             onSeek={commitSeek}
             onStartDrag={() => setIsDragging(true)}
             onEndDrag={() => setIsDragging(false)}
-            onPrev={() => skip('prev')}
-            onNext={() => skip('next')}
+            onPrev={() => queueStore.skipPrev()}
+            onNext={() => queueStore.skipNext()}
           />
         </div>
 
