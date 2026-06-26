@@ -19,7 +19,7 @@ export default function PlaylistTrackList(props: Props) {
   return (
     <div class="flex-1 flex flex-col min-h-0 px-5 py-4 overflow-hidden">
       <Show when={props.isEditing}>
-        <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500 mb-3 shrink-0">
+        <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--color-secondary)] mb-3 shrink-0">
           In this playlist
         </p>
       </Show>
@@ -28,10 +28,10 @@ export default function PlaylistTrackList(props: Props) {
         when={props.tracks.length > 0}
         fallback={
           <div class="flex-1 flex flex-col items-center justify-center text-center">
-            <Music2 size={34} class="text-gray-700 mb-3" />
-            <p class="text-sm text-gray-600">No songs yet</p>
+            <Music2 size={34} class="text-[var(--color-secondary)]/40 mb-3" />
+            <p class="text-sm text-[var(--color-secondary)]">No songs yet</p>
             <Show when={props.isEditing}>
-              <p class="text-xs text-gray-700 mt-1">Add from your library →</p>
+              <p class="text-xs text-[var(--color-secondary)]/60 mt-1">Add from your library →</p>
             </Show>
           </div>
         }
@@ -55,23 +55,44 @@ export default function PlaylistTrackList(props: Props) {
                       : "cursor-pointer"
                   } ${
                     props.dragOverIndex === index()
-                      ? "bg-[var(--color-primary)]/10 ring-1 ring-[var(--color-primary)]/20"
+                      ? "bg-[var(--color-tertiary)]/10 ring-1 ring-[var(--color-tertiary)]/30"
                       : isActive()
-                      ? "bg-[var(--color-primary)]/5"
-                      : "hover:bg-white/5"
+                      ? "bg-[var(--color-muted)]/50"
+                      : "hover:bg-[var(--color-muted)]/30"
                   }`}
                 >
                   {/* Drag handle — edit mode only */}
                   <Show when={props.isEditing}>
                     <GripVertical
                       size={14}
-                      class="text-gray-700 group-hover:text-gray-500 transition-colors shrink-0"
+                      class="text-[var(--color-secondary)]/40 group-hover:text-[var(--color-secondary)] transition-colors shrink-0"
                     />
                   </Show>
 
-                  <span class={`text-[11px] w-4 text-right shrink-0 tabular-nums ${isActive() ? "text-[var(--color-primary)]" : "text-gray-600"}`}>
-                    {index() + 1}
-                  </span>
+                  <div class="relative w-4 h-[13px] shrink-0 flex items-center justify-end">
+                    {/* Track number: fades out on hover (view mode) or when this track is active */}
+                    <span class={`text-[11px] tabular-nums leading-none transition-opacity duration-100 text-[var(--color-secondary)] ${
+                      isActive()
+                        ? "opacity-0"
+                        : !props.isEditing ? "group-hover:opacity-0" : ""
+                    }`}>
+                      {index() + 1}
+                    </span>
+
+                    {/* Play/pause: fades in on hover or permanently when this track is active */}
+                    <Show when={!props.isEditing}>
+                      <span class={`absolute inset-0 flex items-center justify-end transition-opacity duration-100 ${
+                        isActive() ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                      }`}>
+                        <Show
+                          when={isThisPlaying()}
+                          fallback={<Play size={11} fill="currentColor" class="text-[var(--color-tertiary)]" />}
+                        >
+                          <Pause size={11} fill="currentColor" class="text-[var(--color-tertiary)]" />
+                        </Show>
+                      </span>
+                    </Show>
+                  </div>
 
                   <ThumbCell
                     thumbnail_base64={track.thumbnail_base64}
@@ -80,37 +101,15 @@ export default function PlaylistTrackList(props: Props) {
                   />
 
                   <div class="flex-1 min-w-0">
-                    <p class={`text-sm font-medium truncate ${isActive() ? "text-[var(--color-primary)]" : "text-[var(--color-content)]"}`}>
+                    <p class={`text-sm font-medium truncate ${
+                      isActive() ? "text-[var(--color-tertiary)]" : "text-[var(--color-content)]"
+                    }`}>
                       {track.title || "Unknown Title"}
                     </p>
-                    <p class="text-xs text-gray-500 truncate">
+                    <p class="text-xs text-[var(--color-secondary)] truncate">
                       {track.artist_name || "Unknown Artist"}
                     </p>
                   </div>
-
-                  {/* View mode: play/pause icon */}
-                  <Show when={!props.isEditing}>
-                    <Show
-                      when={isThisPlaying()}
-                      fallback={
-                        <Play
-                          size={13}
-                          fill="currentColor"
-                          class={`transition-colors shrink-0 ${
-                            isActive()
-                              ? "text-[var(--color-primary)]"
-                              : "text-gray-700 group-hover:text-[var(--color-primary)]"
-                          }`}
-                        />
-                      }
-                    >
-                      <Pause
-                        size={13}
-                        fill="currentColor"
-                        class="text-[var(--color-primary)] shrink-0"
-                      />
-                    </Show>
-                  </Show>
 
                   {/* Edit mode: remove button */}
                   <Show when={props.isEditing}>
@@ -119,7 +118,7 @@ export default function PlaylistTrackList(props: Props) {
                         e.stopPropagation();
                         props.onRemove?.(track.file_path);
                       }}
-                      class="opacity-0 group-hover:opacity-100 p-1.5 rounded-full hover:bg-red-400/10 text-gray-700 hover:text-red-400 transition-all shrink-0"
+                      class="opacity-0 group-hover:opacity-100 p-1.5 rounded-full hover:bg-red-400/10 text-[var(--color-secondary)] hover:text-red-400 transition-all shrink-0"
                     >
                       <X size={13} />
                     </button>

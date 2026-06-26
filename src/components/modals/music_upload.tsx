@@ -35,9 +35,19 @@ export function musicUpload() {
   const rgbString = () => `rgb(${accentColor().join(",")})`;
   const rgbaString = (alpha: number) => `rgba(${accentColor().join(",")}, ${alpha})`;
 
+  // Used only for input border/ring color — keep simple brightness threshold here
   const getBrightness = () => {
     const [r, g, b] = accentColor();
     return (r * 299 + g * 587 + b * 114) / 1000;
+  };
+
+  const getRelativeLuminance = (): number => {
+    const [r, g, b] = accentColor();
+    const [rs, gs, bs] = [r, g, b].map(c => {
+      const s = c / 255;
+      return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
   };
 
   const getUiColor = () => {
@@ -45,11 +55,14 @@ export function musicUpload() {
   };
 
   const getTextContrastClass = () => {
-    return getBrightness() > 128 ? "text-black" : "text-white";
+    const L = getRelativeLuminance();
+    const whiteContrast = 1.05 / (L + 0.05);
+    const blackContrast = (L + 0.05) / 0.05;
+    return whiteContrast >= blackContrast ? "text-white" : "text-black";
   };
 
-  const formatDuration = (duration : number) => {
-    // duaration in milliseconds
+  const formatDuration = (duration: number) => {
+    // duration in milliseconds
     const minutes = Math.floor(duration / 60000);
     const seconds = Math.floor((duration % 60000) / 1000);
     return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
@@ -58,22 +71,22 @@ export function musicUpload() {
   const handleImageLoad = (e: Event) => {
     const img = e.target as HTMLImageElement;
     const colorThief = new ColorThief();
-    if (img.complete) {
-      try {
-        const color = colorThief.getColor(img);
-        setAccentColor(color);
-        setIsReady(true);
-      } catch (err) {
-        setIsReady(true);
-      }
+    try {
+      const color = colorThief.getColor(img);
+      setAccentColor(color);
+    } catch {
+      // keep default accent color
+    } finally {
+      setIsReady(true);
     }
   };
 
-  
+  const handleImageError = () => {
+    setIsReady(true);
+  };
 
   const Modal: Component<ModalProps> = (props) => {
     
-    // Meta data variables that the user can change
     const [title, setTitle] = createSignal<string>("");
     const [artist, setArtist] = createSignal<string>("");
     const [album, setAlbum] = createSignal<string>("");
@@ -86,12 +99,13 @@ export function musicUpload() {
       setAlbum(props.album ?? "");
     });
 
-
-
-
     const saveTrack = async () => {
-
       const confirmedPath = await moveFile();
+
+      if (!confirmedPath) {
+        alert("Failed to move file to library.");
+        return;
+      }
 
       try {
         const payload = {
@@ -109,7 +123,6 @@ export function musicUpload() {
 
         console.log("Saving track with metadata:", payload);
 
-        // Call backend to save track with updated metadata
         const id = await invoke("add_track", { track: payload });
         
         console.log("Track saved with ID:", id);
@@ -144,7 +157,6 @@ export function musicUpload() {
       }
     };
 
-    
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") closeModal();
     };
@@ -187,13 +199,14 @@ export function musicUpload() {
                     src={`data:${props.thumbnailMime};base64,${props.thumbnailBase64}`}
                     alt="cover" 
                     onLoad={handleImageLoad}
+                    onError={handleImageError}
                     class="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
                   />
                 </div>
 
                 <div class="relative z-10 space-y-2 text-xs font-medium text-secondary">
                   <div class="flex justify-between border-b border-muted pb-2">
-                    <span>Size</span><span class="text-content">{props.fileSize + " MB"|| "unknown"}</span>
+                    <span>Size</span><span class="text-content">{props.fileSize + " MB" || "unknown"}</span>
                   </div>
                   <div class="flex justify-between border-b border-muted pb-2">
                     <span>Length</span><span class="text-content">{formatDuration(props.durationMs) || "-:--"}</span>
@@ -216,8 +229,8 @@ export function musicUpload() {
                     </label>
                     <input 
                       type="text" 
-                      value={title() ?? "" }
-                      onInput= {(e) => setTitle(e.currentTarget.value)}
+                      value={title() ?? ""}
+                      onInput={(e) => setTitle(e.currentTarget.value)}
                       placeholder="Add title..."
                       class="w-full rounded-lg bg-black/20 border border-muted px-4 py-3 text-sm text-content placeholder-secondary focus:bg-black/40 focus:outline-none transition-all duration-300 focus:ring-1"
                       style={{ "--tw-ring-color": "var(--accent-ui)", "border-color": "var(--accent-ui)" }}
@@ -228,8 +241,8 @@ export function musicUpload() {
                     <label class="text-[10px] uppercase tracking-wider text-secondary font-bold ml-1">Artist</label>
                     <input 
                       type="text" 
-                      value={artist() ?? "" }
-                      onInput= {(e) => setArtist(e.currentTarget.value)}
+                      value={artist() ?? ""}
+                      onInput={(e) => setArtist(e.currentTarget.value)}
                       placeholder="Add artist..."
                       class="w-full rounded-lg bg-black/20 border border-muted px-4 py-3 text-sm text-content placeholder-secondary focus:bg-black/40 focus:outline-none transition-all duration-300 focus:ring-1"
                       style={{ "--tw-ring-color": "var(--accent-ui)", "border-color": "var(--accent-ui)" }}
@@ -240,8 +253,8 @@ export function musicUpload() {
                     <label class="text-[10px] uppercase tracking-wider text-secondary font-bold ml-1">Album</label>
                     <input 
                       type="text" 
-                      value={album() ?? "" }
-                      onInput= {(e) => setAlbum(e.currentTarget.value)}
+                      value={album() ?? ""}
+                      onInput={(e) => setAlbum(e.currentTarget.value)}
                       placeholder="Add album..." 
                       class="w-full rounded-lg bg-black/20 border border-muted px-4 py-3 text-sm text-content placeholder-secondary focus:bg-black/40 focus:outline-none transition-all duration-300 focus:ring-1"
                       style={{ "--tw-ring-color": "var(--accent-ui)", "border-color": "var(--accent-ui)" }}
