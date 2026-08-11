@@ -151,6 +151,17 @@ function createQueueStore() {
     }
   };
 
+  const replaceQueue = async (trackIds: number[], startPosition = 0) => {
+      try {
+        await invoke("queue_replace", { trackIds });
+        await syncFromBackend();
+        await invoke("queue_set_position", { position: startPosition });
+        await syncFromBackend();
+      } catch (e) {
+        console.error("Failed to replace queue:", e);
+      }
+  };
+
   const clearQueue = async () => {
     try {
       await invoke("queue_clear");
@@ -262,6 +273,7 @@ function createQueueStore() {
     cycleRepeat,
     toggleShuffle,
     moveTrack,
+    replaceQueue,
   };
 }
 

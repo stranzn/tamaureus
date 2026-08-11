@@ -251,6 +251,39 @@ pub async fn queue_set_repeat(mode: String, state: State<'_, AppState>) -> Resul
     queue.save_state(&state.db).await
 }
 
+
+#[tauri::command]
+pub async fn queue_replace(track_ids: Vec<i64>, state: State<'_, AppState>) -> Result<(), String> {
+    let mut queue = state.queue.lock().await;
+    let db = &state.db;
+
+    let mut tx = db.begin().await.map_err(|e| e.to_string())?;
+
+    sqlx::query!("DELETE FROM queue_items")
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    for (i, track_id) in track_ids.iter().enumerate() {
+        let pos = i as i64;
+        sqlx::query!(
+            "INSERT INTO queue_items (track_id, position) VALUES (?, ?)",
+            track_id,
+            pos
+        )
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| e.to_string())?;
+    }
+
+    tx.commit().await.map_err(|e| e.to_string())?;
+
+    queue.current_position = 0;
+    queue.reload_from_db(db).await?;
+    queue.save_state(db).await
+}
+
+
 #[tauri::command]
 pub async fn queue_toggle_shuffle(state: State<'_, AppState>) -> Result<bool, String> {
     let mut queue = state.queue.lock().await;

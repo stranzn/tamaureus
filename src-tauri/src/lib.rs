@@ -104,6 +104,7 @@ pub fn run() {
             playback_queue::commands::queue_set_repeat,
             playback_queue::commands::queue_toggle_shuffle,
             playback_queue::commands::queue_move_track,
+            playback_queue::commands::queue_replace,
             // user config functions
             user_config::save_music_dir,
             user_config::load_music_dir,

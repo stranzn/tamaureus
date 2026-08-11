@@ -263,87 +263,71 @@ export default function Playlist() {
     setDragOverIndex(null);
   };
 
-  // ── Playing songs ──────────────────────────────────────────────────
+
   const handlePlayHeader = async () => {
-    try {
-      const first = playlistTracks()[0];
-      if (!first) return;
+      try {
+        const tracks = playlistTracks();
+        const first = tracks[0];
+        if (!first) return;
 
-      // a track from this playlist is currently active — just toggle pause
-      const isPlaylistActive = playlistTracks().some(
-        (t) => t.file_path === currentPath(),
-      );
-      if (isPlaylistActive) {
-        await playerStore.togglePlay();
-        return;
+        const isPlaylistActive = tracks.some((t) => t.file_path === currentPath());
+        if (isPlaylistActive) {
+          await playerStore.togglePlay();
+          return;
+        }
+
+        const reversedIds = [...tracks].reverse().map((t) => t.id);
+
+        await queueStore.replaceQueue(reversedIds, 0);
+
+        await playerStore.loadAndPlay(
+          first.file_path,
+          first.title,
+          first.artist_name,
+          first.thumbnail_base64 ?? "",
+          first.thumbnail_mime ?? "",
+        );
+      } catch (e) {
+        console.error("Failed to play playlist:", e);
       }
-
-      // nothing from this playlist is playing — load and start from first track
-      await queueStore.syncFromBackend();
-      const insertPosition = queueStore.items().length;
-
-      for (const track of playlistTracks()) {
-        await invoke("queue_add_track", { trackId: track.id });
-      }
-
-      await queueStore.syncFromBackend();
-      const safePosition = Math.min(
-        insertPosition,
-        queueStore.items().length - 1,
-      );
-
-      await invoke("queue_set_position", { position: safePosition });
-      await queueStore.syncFromBackend();
-
-      await playerStore.loadAndPlay(
-        first.file_path,
-        first.title,
-        first.artist_name,
-        first.thumbnail_base64 ?? "",
-        first.thumbnail_mime ?? "",
-      );
-    } catch (e) {
-      console.error("Failed to play playlist:", e);
-    }
   };
 
+
   const handlePlay = async (track?: any) => {
-    try {
-      const clickedIndex = playlistTracks().indexOf(track);
-      const tracksToAdd = playlistTracks().slice(clickedIndex);
+      try {
+        const tracks = playlistTracks();
+        const toPlay = track ?? tracks[0];
+        if (!toPlay) return;
 
-      await queueStore.syncFromBackend();
-      const insertPosition = queueStore.items().length;
+        if (currentPath() === toPlay.file_path) {
+          isPlaying() ? pauseAudio() : resumeAudio();
+          return;
+        }
 
-      for (const t of tracksToAdd) {
-        await invoke("queue_add_track", { trackId: t.id });
-      }
+        const clickedIndex = tracks.indexOf(toPlay);
+        // const startIndex = clickedIndex === -1 ? 0 : clickedIndex;
 
-      await queueStore.syncFromBackend();
-      const newLength = queueStore.items().length;
+        // Because we are reversing the array, we must also invert the start index
+        // e.g., in a 5 track list, index 1 becomes index 3
+        const startIndex = clickedIndex === -1 
+            ? 0 
+            : tracks.length - 1 - clickedIndex;
 
-      const safePosition = Math.min(insertPosition, newLength - 1);
+        // Create a copy, reverse it, then map the IDs
+        const reversedIds = [...tracks].reverse().map((t) => t.id);
 
-      await invoke("queue_set_position", { position: safePosition });
-      await queueStore.syncFromBackend();
+        await queueStore.replaceQueue(reversedIds, startIndex);
 
-      const toPlay = track ?? playlistTracks()[0];
-      if (!toPlay) return;
-
-      if (currentPath() === toPlay.file_path) {
-        isPlaying() ? pauseAudio() : resumeAudio();
-      } else {
         await playerStore.loadAndPlay(
-          track.file_path,
-          track.title,
-          track.artist_name,
-          track.thumbnail_base64 ?? "",
-          track.thumbnail_mime ?? "",
+          toPlay.file_path,
+          toPlay.title,
+          toPlay.artist_name,
+          toPlay.thumbnail_base64 ?? "",
+          toPlay.thumbnail_mime ?? "",
         );
+      } catch (e) {
+        console.error("Failed to play playlist:", e);
       }
-    } catch (e) {
-      console.error("Failed to add playlist:", e);
-    }
   };
 
   // Does a simple shuffle but we probably have to change it when we implement our queue ****
