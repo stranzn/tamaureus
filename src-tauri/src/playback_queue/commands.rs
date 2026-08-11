@@ -1,3 +1,5 @@
+use std::print;
+
 use crate::models::AppState;
 use crate::playback_queue::{AppQueue, RepeatMode};
 use sqlx::SqlitePool;
@@ -22,6 +24,20 @@ async fn repack_positions(db: &SqlitePool) -> Result<(), String> {
     Ok(())
 }
 
+async fn check_dupes(
+    track_id: i64,
+    tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+) -> Result<Option<i64>, String> {
+    // returns the current position of this track in the queue, if it's already there
+    sqlx::query_scalar!(
+        "SELECT position FROM queue_items WHERE track_id = ? LIMIT 1",
+        track_id
+    )
+    .fetch_optional(&mut **tx)
+    .await
+    .map_err(|e| e.to_string())
+}
+
 // ── commands ──────────────────────────────────────────────────────────────────
 
 #[tauri::command]
@@ -30,58 +46,63 @@ pub async fn queue_get(state: State<'_, AppState>) -> Result<crate::models::Queu
     queue.get_full_queue(&state.db).await
 }
 
+
 #[tauri::command]
 pub async fn queue_add_track(track_id: i64, state: State<'_, AppState>) -> Result<(), String> {
     let mut queue = state.queue.lock().await;
+    let db = &state.db;
 
-    let last_track_id: Option<i64> =
-        sqlx::query_scalar!("SELECT track_id FROM queue_items ORDER BY position DESC LIMIT 1")
-            .fetch_optional(&state.db)
-            .await
-            .map_err(|e| e.to_string())?;
+    // remember what's currently playing so we can keep pointing at it after the shift
+    let current_track_id = queue.items.get(queue.current_position).map(|i| i.track_id);
 
-    if last_track_id == Some(track_id) {
-        return Ok(());
-    }
+    let mut tx = db.begin().await.map_err(|e| e.to_string())?;
 
-    let mut tx = state.db.begin().await.map_err(|e| e.to_string())?;
-
-    sqlx::query!("UPDATE queue_items SET position = -(position + 1)")
+    // remove all existing instances of this track
+    sqlx::query!("DELETE FROM queue_items WHERE track_id = ?", track_id)
         .execute(&mut *tx)
         .await
         .map_err(|e| e.to_string())?;
 
+    // repack remaining positions densely (negate-then-positive dodges the unique index)
     sqlx::query!(
         r#"
         WITH ranked AS (
-            SELECT id, ROW_NUMBER() OVER (ORDER BY position) - 1 AS new_pos
+            SELECT id, ROW_NUMBER() OVER (ORDER BY position) AS new_pos
             FROM queue_items
         )
         UPDATE queue_items
-        SET position = (SELECT new_pos FROM ranked WHERE ranked.id = queue_items.id)
+        SET position = -(SELECT new_pos FROM ranked WHERE ranked.id = queue_items.id)
         "#
     )
     .execute(&mut *tx)
     .await
     .map_err(|e| e.to_string())?;
 
-    let next_pos: i64 =
-        sqlx::query_scalar!("SELECT COALESCE(MAX(position) + 1, 0) FROM queue_items")
-            .fetch_one(&mut *tx)
-            .await
-            .map_err(|e| e.to_string())?;
+    sqlx::query!("UPDATE queue_items SET position = -position")
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| e.to_string())?;
 
+    // insert the new track at the very front, everything else already shifted
     sqlx::query!(
-        "INSERT INTO queue_items (track_id, position) VALUES (?, ?)",
-        track_id,
-        next_pos
+        "INSERT INTO queue_items (track_id, position) VALUES (?, 0)",
+        track_id
     )
     .execute(&mut *tx)
     .await
     .map_err(|e| e.to_string())?;
 
     tx.commit().await.map_err(|e| e.to_string())?;
-    queue.reload_from_db(&state.db).await
+
+    queue.reload_from_db(db).await?;
+
+    // re-anchor current_position to wherever the previously-playing track ended up
+    queue.current_position = match current_track_id {
+        Some(id) => queue.items.iter().position(|i| i.track_id == id).unwrap_or(0),
+        None => 0,
+    };
+
+    queue.save_state(db).await
 }
 
 #[tauri::command]
@@ -91,12 +112,13 @@ pub async fn queue_play_now(track_id: i64, state: State<'_, AppState>) -> Result
 
     let mut tx = db.begin().await.map_err(|e| e.to_string())?;
 
-    // repack: go negative first to avoid intermediate conflicts
-    sqlx::query!("UPDATE queue_items SET position = -(position + 1)")
+    // remove ALL existing instances of this track first
+    sqlx::query!("DELETE FROM queue_items WHERE track_id = ?", track_id)
         .execute(&mut *tx)
         .await
         .map_err(|e| e.to_string())?;
 
+    // repack remaining positions (negate-then-positive dodges the unique index)
     sqlx::query!(
         r#"
         WITH ranked AS (
@@ -104,16 +126,21 @@ pub async fn queue_play_now(track_id: i64, state: State<'_, AppState>) -> Result
             FROM queue_items
         )
         UPDATE queue_items
-        SET position = (SELECT new_pos FROM ranked WHERE ranked.id = queue_items.id)
+        SET position = -(SELECT new_pos FROM ranked WHERE ranked.id = queue_items.id) - 1
         "#
     )
     .execute(&mut *tx)
     .await
     .map_err(|e| e.to_string())?;
 
+    sqlx::query!("UPDATE queue_items SET position = -position")
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| e.to_string())?;
+
     let insert_pos = queue.current_position as i64;
 
-    // shift: go negative first on affected rows before incrementing
+    // shift everything at/after insert_pos up by one to make room
     sqlx::query!(
         "UPDATE queue_items SET position = -(position + 2) WHERE position >= ?",
         insert_pos
@@ -122,12 +149,10 @@ pub async fn queue_play_now(track_id: i64, state: State<'_, AppState>) -> Result
     .await
     .map_err(|e| e.to_string())?;
 
-    sqlx::query!(
-        "UPDATE queue_items SET position = -(position + 1) WHERE position < 0"
-    )
-    .execute(&mut *tx)
-    .await
-    .map_err(|e| e.to_string())?;
+    sqlx::query!("UPDATE queue_items SET position = -(position + 1) WHERE position < 0")
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| e.to_string())?;
 
     sqlx::query!(
         "INSERT INTO queue_items (track_id, position) VALUES (?, ?)",
@@ -141,6 +166,7 @@ pub async fn queue_play_now(track_id: i64, state: State<'_, AppState>) -> Result
     tx.commit().await.map_err(|e| e.to_string())?;
 
     queue.reload_from_db(db).await?;
+    queue.current_position = insert_pos as usize;
     queue.save_state(db).await
 }
 

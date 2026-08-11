@@ -121,6 +121,12 @@ function createQueueStore() {
         track.thumbnail_base64 ?? "",
         track.thumbnail_mime ?? "",
       );
+
+      // temp for debugging
+      console.log("printing queue....");
+      const queue_list = await invoke("queue_get");
+      console.log(queue_list);
+
     } catch (e) {
       console.error("Failed to play now:", e);
     }
