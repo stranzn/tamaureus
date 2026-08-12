@@ -14,6 +14,7 @@ export default function Playlist() {
   const navigate = useNavigate();
   const { loadAndPlay, currentPath, isPlaying, pauseAudio, resumeAudio } =
     playerStore;
+  const { playNow } = queueStore;
 
   // ── Loading ──────────────────────────────────────────────────
   const [isLoading, setIsLoading] = createSignal(true);
@@ -265,31 +266,16 @@ export default function Playlist() {
 
 
   const handlePlayHeader = async () => {
-      try {
-        const tracks = playlistTracks();
-        const first = tracks[0];
-        if (!first) return;
+      const tracks = playlistTracks();
+      if (!tracks[0]) return;
 
-        const isPlaylistActive = tracks.some((t) => t.file_path === currentPath());
-        if (isPlaylistActive) {
-          await playerStore.togglePlay();
-          return;
-        }
-
-        const reversedIds = [...tracks].reverse().map((t) => t.id);
-
-        await queueStore.replaceQueue(reversedIds, 0);
-
-        await playerStore.loadAndPlay(
-          first.file_path,
-          first.title,
-          first.artist_name,
-          first.thumbnail_base64 ?? "",
-          first.thumbnail_mime ?? "",
-        );
-      } catch (e) {
-        console.error("Failed to play playlist:", e);
+      const isPlaylistActive = tracks.some((t) => t.file_path === currentPath());
+      if (isPlaylistActive) {
+        await playerStore.togglePlay();
+        return;
       }
+
+      await handlePlay(); // no track arg → defaults to tracks[0], same as clicking the first row
   };
 
 

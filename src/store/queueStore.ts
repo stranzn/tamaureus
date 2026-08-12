@@ -250,6 +250,11 @@ function createQueueStore() {
     }
   };
 
+  // exposed so UI (queue sidebar) can jump to a specific track
+  const playAtPosition = async (position: number) => {
+    await playTrackAtPosition(position);
+  };
+
   return {
     // state
     items,
@@ -273,6 +278,7 @@ function createQueueStore() {
     toggleShuffle,
     moveTrack,
     replaceQueue,
+    playAtPosition,
   };
 }
 
