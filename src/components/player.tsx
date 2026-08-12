@@ -43,8 +43,8 @@ export default function Player() {
             onSeek={commitSeek}
             onStartDrag={() => setIsDragging(true)}
             onEndDrag={() => setIsDragging(false)}
-            onPrev={() => queueStore.skipNext()}
-            onNext={() => queueStore.skipPrev()}
+            onPrev={() => queueStore.skipPrev()}
+            onNext={() => queueStore.skipNext()}
           />
         </div>
 

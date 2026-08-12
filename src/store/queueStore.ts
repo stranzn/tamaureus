@@ -126,7 +126,6 @@ function createQueueStore() {
       console.log("printing queue....");
       const queue_list = await invoke("queue_get");
       console.log(queue_list);
-
     } catch (e) {
       console.error("Failed to play now:", e);
     }
@@ -152,14 +151,14 @@ function createQueueStore() {
   };
 
   const replaceQueue = async (trackIds: number[], startPosition = 0) => {
-      try {
-        await invoke("queue_replace", { trackIds });
-        await syncFromBackend();
-        await invoke("queue_set_position", { position: startPosition });
-        await syncFromBackend();
-      } catch (e) {
-        console.error("Failed to replace queue:", e);
-      }
+    try {
+      await invoke("queue_replace", { trackIds });
+      await syncFromBackend();
+      await invoke("queue_set_position", { position: startPosition });
+      await syncFromBackend();
+    } catch (e) {
+      console.error("Failed to replace queue:", e);
+    }
   };
 
   const clearQueue = async () => {
@@ -169,31 +168,6 @@ function createQueueStore() {
     } catch (e) {
       console.error("Failed to clear queue:", e);
     }
-  };
-
-  const skipNext = async () => {
-    const queue = items();
-    if (queue.length === 0) return;
-
-    const current = currentPosition();
-
-    if (repeatMode() === "one") {
-      // replay current track
-      await playTrackAtPosition(current);
-      return;
-    }
-
-    const nextPos = current + 1;
-
-    if (nextPos >= queue.length) {
-      if (repeatMode() === "all") {
-        await playTrackAtPosition(0);
-      }
-      // repeat none — do nothing, end of queue
-      return;
-    }
-
-    await playTrackAtPosition(nextPos);
   };
 
   const skipPrev = async () => {
@@ -208,7 +182,7 @@ function createQueueStore() {
       return;
     }
 
-    const prevPos = current - 1;
+    const prevPos = current + 1;
 
     if (prevPos < 0) {
       if (repeatMode() === "all") {
@@ -220,6 +194,31 @@ function createQueueStore() {
     }
 
     await playTrackAtPosition(prevPos);
+  };
+
+  const skipNext = async () => {
+    const queue = items();
+    if (queue.length === 0) return;
+
+    const current = currentPosition();
+
+    if (repeatMode() === "one") {
+      // replay current track
+      await playTrackAtPosition(current);
+      return;
+    }
+
+    const nextPos = current - 1;
+
+    if (nextPos >= queue.length) {
+      if (repeatMode() === "all") {
+        await playTrackAtPosition(0);
+      }
+      // repeat none — do nothing, end of queue
+      return;
+    }
+
+    await playTrackAtPosition(nextPos);
   };
 
   const cycleRepeat = async () => {

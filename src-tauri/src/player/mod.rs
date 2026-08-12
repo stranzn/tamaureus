@@ -42,6 +42,10 @@ fn start_audio_thread(app_handle: AppHandle) -> Sender<AudioCommand> {
             .expect("Failed to open default audio output stream");
         let sink = Sink::connect_new(&stream.mixer());
 
+        // track state across poll ticks to detect natural track completion
+        let mut was_active = false;
+        let mut suppress_next_end_event = false;
+
         loop {
             while let Ok(cmd) = rx.try_recv() {
                 match cmd {
@@ -80,6 +84,9 @@ fn start_audio_thread(app_handle: AppHandle) -> Sender<AudioCommand> {
                             Ok(duration)
                         })();
 
+                        // new track loaded — resume normal end-of-track detection
+                        suppress_next_end_event = false;
+
                         let _ = reply.send(result);
                     }
                     // load song without playing
@@ -115,11 +122,17 @@ fn start_audio_thread(app_handle: AppHandle) -> Sender<AudioCommand> {
                             Ok(duration)
                         })();
 
+                        suppress_next_end_event = false;
+
                         let _ = reply.send(result);
                     }
                     AudioCommand::Pause => sink.pause(),
                     AudioCommand::Resume => sink.play(),
-                    AudioCommand::Stop => sink.stop(),
+                    AudioCommand::Stop => {
+                        sink.stop();
+                        // manual stop draining the sink is not a "track ended naturally" event
+                        suppress_next_end_event = true;
+                    }
                     AudioCommand::SetVolume(v) => sink.set_volume(v.clamp(0.0, 1.0)),
                     AudioCommand::Seek(seconds) => {
                         // Increment version to invalidate old position messages
@@ -140,13 +153,22 @@ fn start_audio_thread(app_handle: AppHandle) -> Sender<AudioCommand> {
                 }
             }
 
-            // Emit streaming data
-            if !sink.is_paused() && !sink.empty() {
+            let is_active = !sink.is_paused() && !sink.empty();
+
+            if is_active {
+                // Emit streaming position data
                 let position = sink.get_pos().as_secs_f32();
                 let version = SEEK_VERSION.load(Ordering::SeqCst);
                 // Payload is a tuple: (current_time, current_version)
                 let _ = app_handle.emit("audio_position", (position, version));
+            } else if was_active && sink.empty() && !suppress_next_end_event {
+                // Was playing last tick, now drained on its own, not paused,
+                // and not the result of an explicit Stop — this is a natural
+                // end of track.
+                let _ = app_handle.emit("track_ended", ());
             }
+
+            was_active = is_active;
 
             thread::sleep(Duration::from_millis(50));
         }

@@ -53,7 +53,16 @@ function createPlayerStore() {
     onCleanup(() => unlisten());
   };
 
+  const setupTrackEndedListener = async () => {
+    const unlisten = await listen<null>("track_ended", async () => {
+      const { queueStore } = await import("./queueStore");
+      await queueStore.skipNext();
+    });
+    onCleanup(() => unlisten());
+  };
+
   setupListener();
+  setupTrackEndedListener();
 
   // ── Actions ─────────────────────────────────────────────────────────────
 
