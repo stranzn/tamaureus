@@ -149,7 +149,7 @@ export function musicUpload() {
 
     const get_user_music_dir = async (): Promise<string> => {
       try {
-        const musicDir = await invoke<string>("get_user_song_dir");
+        const musicDir = await invoke<string>("load_music_dir");
         return musicDir;
       } catch (err) {
         console.error("Error getting user music directory:", err);

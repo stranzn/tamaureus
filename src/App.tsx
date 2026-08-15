@@ -13,6 +13,7 @@ import { invoke } from "@tauri-apps/api/core";
 import RootLayout from "./layouts/root-layout";
 import TitleBar from "./components/title-bar";
 import { queueStore } from "./store/queueStore";
+import { loadSettings } from "./store/settingsStore";
 
 // --- Global State Context ---
 const AppStateContext = createContext<{
@@ -53,6 +54,7 @@ const AppContent: Component = () => {
     }
 
     queueStore.restoreFromQueue();
+    loadSettings();
 
   });
 

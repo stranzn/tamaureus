@@ -19,7 +19,7 @@ fn get_db_path(app: &tauri::AppHandle) -> String {
 
     // Ensure directory exists
     if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).expect("Failed to create data dir");
+    std::fs::create_dir_all(parent).expect("Failed to create data dir");
     }
 
     format!("sqlite://{}?mode=rwc", path.display())
@@ -108,11 +108,13 @@ pub fn run() {
             // user config functions
             user_config::save_music_dir,
             user_config::load_music_dir,
+            user_config::save_delete_files_setting,
+            user_config::load_settings,
             // util functions
             utils::move_file_to_dir,
             utils::tag_reader::get_track_metadata,
-            utils::get_user_song_dir,
             utils::read_file_as_base64,
+            utils::delete_track_file,
             // player functions
             player::play_track,
             player::load_track,
