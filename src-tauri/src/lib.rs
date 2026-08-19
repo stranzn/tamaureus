@@ -124,7 +124,15 @@ pub fn run() {
             player::set_volume,
             player::get_playback_state,
             player::seek_track,
-            player::get_position
+            player::get_position,
+            // yt-dlp functions
+            utils::ytdlp_controller::check_ytdlp_update,
+            utils::ytdlp_controller::download_ytdlp,
+            utils::ytdlp_controller::get_ytdlp_status,
+            utils::download_track::download_song,
+            utils::download_track::confirm_track_import,
+            utils::download_track::discard_pending_download,
+
         ])
         .run(tauri::generate_context!())
         .expect("error running tauri application");

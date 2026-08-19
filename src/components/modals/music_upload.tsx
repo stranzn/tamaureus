@@ -1,22 +1,31 @@
 import { render, Portal } from "solid-js/web";
-import { Component, createSignal, Show, onCleanup, createEffect } from "solid-js";
-import {invoke} from "@tauri-apps/api/core";
+import {
+  Component,
+  createSignal,
+  Show,
+  onCleanup,
+  createEffect,
+} from "solid-js";
+import { invoke } from "@tauri-apps/api/core";
 
 // @ts-expect-error
 import ColorThief from "colorthief";
 
 interface ModalProps {
-    filePath: string;
-    title: string;
-    artist: string;
-    album: string;
-    fileFormat: string;
-    fileSize: number;
-    durationMs: number;
-    dateAdded: number;
-    thumbnailBase64: string;
-    thumbnailMime: string;
-  }
+  filePath: string;
+  title: string;
+  artist: string;
+  album: string;
+  fileFormat: string;
+  fileSize: number;
+  durationMs: number;
+  dateAdded: number;
+  thumbnailBase64: string;
+  thumbnailMime: string;
+  source?: "local" | "download"; // defaults to "local"
+  onConfirmed?: (result: { id: number; duplicate: boolean }) => void;
+  onCancelled?: () => void;
+}
 
 export function musicUpload() {
   const [open, setOpen] = createSignal(false);
@@ -33,7 +42,8 @@ export function musicUpload() {
   };
 
   const rgbString = () => `rgb(${accentColor().join(",")})`;
-  const rgbaString = (alpha: number) => `rgba(${accentColor().join(",")}, ${alpha})`;
+  const rgbaString = (alpha: number) =>
+    `rgba(${accentColor().join(",")}, ${alpha})`;
 
   // Used only for input border/ring color — keep simple brightness threshold here
   const getBrightness = () => {
@@ -43,7 +53,7 @@ export function musicUpload() {
 
   const getRelativeLuminance = (): number => {
     const [r, g, b] = accentColor();
-    const [rs, gs, bs] = [r, g, b].map(c => {
+    const [rs, gs, bs] = [r, g, b].map((c) => {
       const s = c / 255;
       return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
     });
@@ -65,7 +75,13 @@ export function musicUpload() {
     // duration in milliseconds
     const minutes = Math.floor(duration / 60000);
     const seconds = Math.floor((duration % 60000) / 1000);
-    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+    return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (!bytes || bytes <= 0) return "unknown";
+    const mb = bytes / (1024 * 1024);
+    return `${mb.toFixed(mb < 10 ? 1 : 0)} MB`;
   };
 
   const handleImageLoad = (e: Event) => {
@@ -86,7 +102,6 @@ export function musicUpload() {
   };
 
   const Modal: Component<ModalProps> = (props) => {
-    
     const [title, setTitle] = createSignal<string>("");
     const [artist, setArtist] = createSignal<string>("");
     const [album, setAlbum] = createSignal<string>("");
@@ -100,6 +115,36 @@ export function musicUpload() {
     });
 
     const saveTrack = async () => {
+      if (props.source === "download") {
+        try {
+          const payload = {
+            file_path: props.filePath,
+            title: title(),
+            artist: artist(),
+            album: album(),
+            file_format: props.fileFormat,
+            file_size: props.fileSize,
+            duration_ms: props.durationMs,
+            date_added: null, // let the backend default it via current_date_as_int()
+            thumbnail_base64: props.thumbnailBase64 || null,
+            thumbnail_mime: props.thumbnailMime || null,
+          };
+
+          const result = await invoke<{ id: number; duplicate: boolean }>(
+            "confirm_track_import",
+            { extracted: payload },
+          );
+
+          props.onConfirmed?.(result);
+          closeModal();
+        } catch (err) {
+          console.error("Confirm import error:", err);
+          alert("Failed to save track.");
+        }
+        return;
+      }
+
+      // existing local-file flow — unchanged
       const confirmedPath = await moveFile();
 
       if (!confirmedPath) {
@@ -121,12 +166,8 @@ export function musicUpload() {
           thumbnail_mime: props.thumbnailMime,
         };
 
-        console.log("Saving track with metadata:", payload);
-
         const id = await invoke("add_track", { track: payload });
-        
-        console.log("Track saved with ID:", id);
-
+        props.onConfirmed?.({ id: id as number, duplicate: false });
         closeModal();
       } catch (err) {
         console.error("Save error:", err);
@@ -134,14 +175,31 @@ export function musicUpload() {
       }
     };
 
+    const handleCancel = async () => {
+      if (props.source === "download" && props.filePath) {
+        try {
+          await invoke("discard_pending_download", {
+            filePath: props.filePath,
+          });
+        } catch (err) {
+          console.error("Discard error:", err);
+        }
+      }
+      props.onCancelled?.();
+      closeModal();
+    };
+
     const moveFile = async () => {
       try {
-          const destination = await get_user_music_dir();
-          console.log("Moving file to:", destination);
-          console.log("Source file:", props.filePath);
-          const confirmedPath = await invoke("move_file_to_dir", { srcFile: props.filePath, destDir: destination });
-          console.log("File moved to:", destination);
-          return confirmedPath;
+        const destination = await get_user_music_dir();
+        console.log("Moving file to:", destination);
+        console.log("Source file:", props.filePath);
+        const confirmedPath = await invoke("move_file_to_dir", {
+          srcFile: props.filePath,
+          destDir: destination,
+        });
+        console.log("File moved to:", destination);
+        return confirmedPath;
       } catch (err) {
         console.error("Move file error:", err);
       }
@@ -158,9 +216,9 @@ export function musicUpload() {
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeModal();
+      if (e.key === "Escape") handleCancel();
     };
-    
+
     document.addEventListener("keydown", onKeyDown);
     onCleanup(() => document.removeEventListener("keydown", onKeyDown));
 
@@ -168,15 +226,15 @@ export function musicUpload() {
       <Portal>
         <Show when={open()}>
           <div
-            onClick={closeModal}
+            onClick={handleCancel}
             class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md transition-opacity"
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              style={{ 
+              style={{
                 "--accent": rgbString(),
-                "--accent-ui": getUiColor(), 
-                "--accent-dim": rgbaString(0.2) 
+                "--accent-ui": getUiColor(),
+                "--accent-dim": rgbaString(0.2),
               }}
               class={`
                 w-full max-w-3xl overflow-hidden rounded-2xl 
@@ -184,20 +242,22 @@ export function musicUpload() {
                 border border-muted
                 md:grid md:grid-cols-[280px_1fr]
                 transition-all duration-500 ease-out
-                ${isReady() ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'}
+                ${isReady() ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-4 scale-95"}
               `}
             >
               <div class="flex flex-col gap-6 bg-surface p-6 md:border-r md:border-muted relative overflow-hidden">
-                <div 
+                <div
                   class="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none blur-3xl"
-                  style={{ background: `radial-gradient(circle at center, var(--accent), transparent 70%)` }}
+                  style={{
+                    background: `radial-gradient(circle at center, var(--accent), transparent 70%)`,
+                  }}
                 />
 
                 <div class="relative z-10 aspect-square w-full overflow-hidden rounded-lg shadow-lg shadow-black/50">
-                  <img 
-                    crossOrigin="anonymous" 
+                  <img
+                    crossOrigin="anonymous"
                     src={`data:${props.thumbnailMime};base64,${props.thumbnailBase64}`}
-                    alt="cover" 
+                    alt="cover"
                     onLoad={handleImageLoad}
                     onError={handleImageError}
                     class="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
@@ -206,65 +266,87 @@ export function musicUpload() {
 
                 <div class="relative z-10 space-y-2 text-xs font-medium text-secondary">
                   <div class="flex justify-between border-b border-muted pb-2">
-                    <span>Size</span><span class="text-content">{props.fileSize + " MB" || "unknown"}</span>
+                    <span>Size</span>
+                    <span class="text-content">
+                      {formatFileSize(props.fileSize) || "unknown"}
+                    </span>
                   </div>
                   <div class="flex justify-between border-b border-muted pb-2">
-                    <span>Length</span><span class="text-content">{formatDuration(props.durationMs) || "-:--"}</span>
+                    <span>Length</span>
+                    <span class="text-content">
+                      {formatDuration(props.durationMs) || "-:--"}
+                    </span>
                   </div>
                   <div class="flex justify-between">
-                    <span>Format</span><span class="text-content">{props.fileFormat.toUpperCase() || "unknown"}</span>
+                    <span>Format</span>
+                    <span class="text-content">
+                      {props.fileFormat.toUpperCase() || "unknown"}
+                    </span>
                   </div>
                 </div>
               </div>
 
               <div class="flex flex-col justify-between p-6 md:p-8 relative">
                 <div class="space-y-6">
-                  <h2 class="text-xl font-bold tracking-tight text-content mb-6">Edit Metadata</h2>
-                  
+                  <h2 class="text-xl font-bold tracking-tight text-content mb-6">
+                    Edit Metadata
+                  </h2>
+
                   <div class="group space-y-1">
-                    <label 
-                       class="text-[10px] uppercase tracking-wider text-secondary font-bold ml-1"
-                    >
+                    <label class="text-[10px] uppercase tracking-wider text-secondary font-bold ml-1">
                       Title
                     </label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={title() ?? ""}
                       onInput={(e) => setTitle(e.currentTarget.value)}
                       placeholder="Add title..."
                       class="w-full rounded-lg bg-black/20 border border-muted px-4 py-3 text-sm text-content placeholder-secondary focus:bg-black/40 focus:outline-none transition-all duration-300 focus:ring-1"
-                      style={{ "--tw-ring-color": "var(--accent-ui)", "border-color": "var(--accent-ui)" }}
+                      style={{
+                        "--tw-ring-color": "var(--accent-ui)",
+                        "border-color": "var(--accent-ui)",
+                      }}
                     />
                   </div>
 
                   <div class="space-y-1">
-                    <label class="text-[10px] uppercase tracking-wider text-secondary font-bold ml-1">Artist</label>
-                    <input 
-                      type="text" 
+                    <label class="text-[10px] uppercase tracking-wider text-secondary font-bold ml-1">
+                      Artist
+                    </label>
+                    <input
+                      type="text"
                       value={artist() ?? ""}
                       onInput={(e) => setArtist(e.currentTarget.value)}
                       placeholder="Add artist..."
                       class="w-full rounded-lg bg-black/20 border border-muted px-4 py-3 text-sm text-content placeholder-secondary focus:bg-black/40 focus:outline-none transition-all duration-300 focus:ring-1"
-                      style={{ "--tw-ring-color": "var(--accent-ui)", "border-color": "var(--accent-ui)" }}
+                      style={{
+                        "--tw-ring-color": "var(--accent-ui)",
+                        "border-color": "var(--accent-ui)",
+                      }}
                     />
                   </div>
 
                   <div class="space-y-1">
-                    <label class="text-[10px] uppercase tracking-wider text-secondary font-bold ml-1">Album</label>
-                    <input 
-                      type="text" 
+                    <label class="text-[10px] uppercase tracking-wider text-secondary font-bold ml-1">
+                      Album
+                    </label>
+                    <input
+                      type="text"
                       value={album() ?? ""}
                       onInput={(e) => setAlbum(e.currentTarget.value)}
-                      placeholder="Add album..." 
+                      placeholder="Add album..."
                       class="w-full rounded-lg bg-black/20 border border-muted px-4 py-3 text-sm text-content placeholder-secondary focus:bg-black/40 focus:outline-none transition-all duration-300 focus:ring-1"
-                      style={{ "--tw-ring-color": "var(--accent-ui)", "border-color": "var(--accent-ui)" }}
+                      style={{
+                        "--tw-ring-color": "var(--accent-ui)",
+                        "border-color": "var(--accent-ui)",
+                      }}
                     />
                   </div>
                 </div>
 
                 <div class="mt-10 flex justify-end gap-3">
                   <button
-                    onClick={closeModal}
+                    onClick={handleCancel}
                     class="rounded-full px-6 py-2.5 text-sm font-medium text-secondary transition-colors hover:bg-muted hover:text-content"
                   >
                     Cancel
@@ -272,9 +354,9 @@ export function musicUpload() {
 
                   <button
                     onClick={saveTrack}
-                    style={{ 
+                    style={{
                       "background-color": "var(--accent)",
-                      "box-shadow": "0 10px 30px -10px var(--accent)" 
+                      "box-shadow": "0 10px 30px -10px var(--accent)",
                     }}
                     class={`
                       rounded-full px-8 py-2.5 text-sm font-bold

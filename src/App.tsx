@@ -35,6 +35,7 @@ export const useAppState = () => useContext(AppStateContext)!;
 // --- Lazy Pages ---
 const Library = lazy(() => import("./pages/Library"));
 const Listen = lazy(() => import("./pages/Listen"));
+const Download = lazy(() => import("./pages/Download"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Playlist = lazy(() => import("./pages/Playlist"));
 const Setup = lazy(() => import("./pages/Setup"));
@@ -79,6 +80,12 @@ const AppContent: Component = () => {
             path="/listen"
             component={() =>
               hasMusicDir() ? <Listen /> : <Navigate href="/setup" />
+            }
+          />
+          <Route
+            path="/download"
+            component={() =>
+              hasMusicDir() ? <Download /> : <Navigate href="/setup" />
             }
           />
           <Route
