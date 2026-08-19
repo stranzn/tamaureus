@@ -288,8 +288,6 @@ impl Database {
         Ok(maybe_id)
     }
 
-    // ── inside impl Database ──────────────────────────────────────────────────────
-
     // playlist queries
     pub async fn get_playlist(&self, id: i64) -> Result<Playlist, String> {
         sqlx::query_as::<_, Playlist>(

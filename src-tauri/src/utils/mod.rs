@@ -1,11 +1,12 @@
 use chrono::{Datelike, Local};
-use tauri::Manager;
 use std::fs;
 use std::path::Path;
 use tauri::AppHandle;
 use crate::user_config::read_settings;
 
 pub mod tag_reader;
+pub mod ytdlp_controller;
+pub mod download_track;
 
 #[allow(dead_code)]
 #[tauri::command]

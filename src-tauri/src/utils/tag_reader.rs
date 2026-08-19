@@ -71,7 +71,7 @@ pub fn extract_track_metadata(path: &str) -> Result<ExtractedTrack, String> {
         album,
         duration_ms,
         file_format: path.extension().and_then(|e| e.to_str()).map(|s| s.to_lowercase()).unwrap_or_else(|| "unknown".to_string()),
-        file_size: file_size_mb as f64,
+        file_size: file_size_mb as i64,
         date_added: Some(date_added),
         thumbnail_base64,
         thumbnail_mime,

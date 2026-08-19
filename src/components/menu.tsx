@@ -1,6 +1,6 @@
 import { A, useLocation } from "@solidjs/router";
 import { createSignal } from "solid-js";
-import { LibraryBig, Headphones, Settings, ChevronLeft, ChevronRight, Disc3 } from "lucide-solid";
+import { LibraryBig, Headphones, Settings, ChevronLeft, ChevronRight, Download } from "lucide-solid";
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = createSignal(false);
@@ -9,6 +9,7 @@ export default function Sidebar() {
   const links = [
     { href: "/", label: "Library", icon: LibraryBig },
     { href: "/listen", label: "Listen", icon: Headphones },
+    { href: "/download", label: "Download", icon: Download },
     { href: "/settings", label: "Settings", icon: Settings },
   ];
 
