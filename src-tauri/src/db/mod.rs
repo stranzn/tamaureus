@@ -1,7 +1,9 @@
 use sqlx::Row;
 
 use crate::{
-    models::{Album, AppState as Database, Artist, ExtractedTrack, Track, Playlist, PlaylistPreview },
+    models::{
+        Album, AppState as Database, Artist, ExtractedTrack, Playlist, PlaylistPreview, Track,
+    },
     utils::current_date_as_int,
 };
 
@@ -300,8 +302,8 @@ impl Database {
         .map_err(|e| format!("Database error: {}", e))
     }
 
-        // This is hella long because it fetches 4 separate thumbnails for the playlist preview, but it saves a lot of complexity on the frontend
-        pub async fn get_playlists_with_previews(&self) -> Result<Vec<PlaylistPreview>, String> {
+    // This is hella long because it fetches 4 separate thumbnails for the playlist preview, but it saves a lot of complexity on the frontend
+    pub async fn get_playlists_with_previews(&self) -> Result<Vec<PlaylistPreview>, String> {
         sqlx::query_as::<_, PlaylistPreview>(
             r#"
             SELECT
@@ -352,14 +354,14 @@ impl Database {
         track_ids: Vec<i64>,
     ) -> Result<i64, String> {
         let playlist_id = sqlx::query_scalar!(
-        "INSERT INTO playlists (name, description, cover_path) VALUES (?, ?, ?) RETURNING id",
-        name,
-        description,
-        cover_path
-    )
-    .fetch_one(&self.db)
-    .await
-    .map_err(|e| format!("Failed to create playlist: {}", e))?;
+            "INSERT INTO playlists (name, description, cover_path) VALUES (?, ?, ?) RETURNING id",
+            name,
+            description,
+            cover_path
+        )
+        .fetch_one(&self.db)
+        .await
+        .map_err(|e| format!("Failed to create playlist: {}", e))?;
 
         for (position, track_id) in track_ids.iter().enumerate() {
             let pos = position as i64;
@@ -576,10 +578,7 @@ pub async fn add_track(
 
 #[allow(dead_code)]
 #[tauri::command]
-pub async fn get_playlist(
-    state: tauri::State<'_, Database>,
-    id: i64,
-) -> Result<Playlist, String> {
+pub async fn get_playlist(state: tauri::State<'_, Database>, id: i64) -> Result<Playlist, String> {
     state.get_playlist(id).await
 }
 
@@ -600,7 +599,9 @@ pub async fn save_playlist(
     cover_path: Option<String>,
     track_ids: Vec<i64>,
 ) -> Result<i64, String> {
-    state.save_playlist(name, description, cover_path, track_ids).await
+    state
+        .save_playlist(name, description, cover_path, track_ids)
+        .await
 }
 
 #[allow(dead_code)]
@@ -622,24 +623,19 @@ pub async fn update_playlist(
     cover_path: Option<String>,
     track_ids: Vec<i64>,
 ) -> Result<(), String> {
-    state.update_playlist(id, name, description, cover_path, track_ids).await
+    state
+        .update_playlist(id, name, description, cover_path, track_ids)
+        .await
 }
 
 #[allow(dead_code)]
 #[tauri::command]
-pub async fn delete_playlist(
-    state: tauri::State<'_, Database>,
-    id: i64,
-) -> Result<(), String> {
+pub async fn delete_playlist(state: tauri::State<'_, Database>, id: i64) -> Result<(), String> {
     state.delete_playlist(id).await
 }
 
 #[allow(dead_code)]
 #[tauri::command]
-pub async fn remove_track(
-    state: tauri::State<'_, Database>,
-    track_id: i64,
-) -> Result<(), String> {
+pub async fn remove_track(state: tauri::State<'_, Database>, track_id: i64) -> Result<(), String> {
     state.remove_track(track_id).await
 }
-

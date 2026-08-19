@@ -1,7 +1,8 @@
 import { ParentComponent, Show } from "solid-js";
-import { useLocation } from "@solidjs/router"; // Import this
+import { useLocation } from "@solidjs/router";
 import Menu from "../components/menu";
 import Player from "../components/player";
+import QueueSidebar from "../components/QueueSidebar";
 import { mountTheme } from "../components/theme-toggle";
 import "./index.css";
 
@@ -31,6 +32,11 @@ const RootLayout: ParentComponent = (props) => {
                 >
                     {props.children}
                 </main>
+
+                {/* Queue sidebar — hidden in Setup, renders nothing when closed */}
+                <Show when={!isSetup()}>
+                    <QueueSidebar />
+                </Show>
             </div>
 
             {/* 3. Hide the Player if we are in Setup */}

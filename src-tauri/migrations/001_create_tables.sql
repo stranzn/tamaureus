@@ -55,6 +55,40 @@ CREATE TABLE IF NOT EXISTS playlist_tracks (
     FOREIGN KEY (track_id)    REFERENCES tracks(id)     ON DELETE CASCADE
 );
 
+-- ========= Queue ======== 
+
+CREATE TABLE IF NOT EXISTS queue_items (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    track_id    INTEGER NOT NULL,
+    position    INTEGER NOT NULL,
+    added_at    INTEGER NOT NULL DEFAULT (unixepoch()),
+    
+    FOREIGN KEY (track_id) REFERENCES tracks(id) ON DELETE CASCADE
+);
+
+-- enforcing unique positions in queue table
+CREATE UNIQUE INDEX IF NOT EXISTS idx_queue_position 
+ON queue_items(position);
+
+-- Queue metadata / playback state (singleton)
+CREATE TABLE IF NOT EXISTS queue_state (
+    id                    INTEGER PRIMARY KEY CHECK (id = 1) NOT NULL,
+    current_position      INTEGER NOT NULL DEFAULT 0,           -- index in queue_items
+    repeat_mode           TEXT    NOT NULL DEFAULT 'none',      -- 'none', 'one', 'all'
+    shuffle_enabled       BOOLEAN NOT NULL DEFAULT FALSE,
+    last_updated          INTEGER NOT NULL DEFAULT (unixepoch())
+);
+
+-- initialize queue state
+INSERT OR IGNORE INTO queue_state (id, current_position) 
+VALUES (1, 0);
+
+CREATE INDEX IF NOT EXISTS idx_queue_track 
+ON queue_items(track_id);
+
+CREATE INDEX IF NOT EXISTS idx_queue_added 
+ON queue_items(added_at);
+
 CREATE UNIQUE INDEX IF NOT EXISTS idx_playlists_name_unique_user
 ON playlists(name COLLATE NOCASE)
 WHERE is_system = 0;

@@ -7,10 +7,14 @@ import PlaylistHeader from "../components/playlist/PlaylistHeader";
 import PlaylistTrackList from "../components/playlist/PlaylistTrackList";
 import LibraryPicker from "../components/playlist/LibraryPicker";
 
+import { queueStore } from "../store/queueStore";
+
 export default function Playlist() {
   const params = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { loadAndPlay, currentPath, isPlaying, pauseAudio, resumeAudio } = playerStore;
+  const { loadAndPlay, currentPath, isPlaying, pauseAudio, resumeAudio } =
+    playerStore;
+  const { playNow } = queueStore;
 
   // ── Loading ──────────────────────────────────────────────────
   const [isLoading, setIsLoading] = createSignal(true);
@@ -30,7 +34,9 @@ export default function Playlist() {
   const [draftName, setDraftName] = createSignal("");
   const [draftDescription, setDraftDescription] = createSignal("");
   const [draftCoverPath, setDraftCoverPath] = createSignal<string | null>(null);
-  const [draftCoverAssetUrl, setDraftCoverAssetUrl] = createSignal<string | null>(null);
+  const [draftCoverAssetUrl, setDraftCoverAssetUrl] = createSignal<
+    string | null
+  >(null);
   const [draftTracks, setDraftTracks] = createSignal<any[]>([]);
 
   // ── Library + search ─────────────────────────────────────────
@@ -48,11 +54,13 @@ export default function Playlist() {
   // ── Derived ───────────────────────────────────────────────────
   // Cover grid uses draft tracks in edit mode, committed tracks in view mode
   const activeTracks = createMemo(() =>
-    isEditing() ? draftTracks() : playlistTracks()
+    isEditing() ? draftTracks() : playlistTracks(),
   );
 
   const coverTracks = createMemo(() =>
-    activeTracks().filter((t) => t.thumbnail_base64).slice(0, 4)
+    activeTracks()
+      .filter((t) => t.thumbnail_base64)
+      .slice(0, 4),
   );
 
   const totalDuration = createMemo(() => {
@@ -67,8 +75,8 @@ export default function Playlist() {
       (t) =>
         !draftTracks().some((pt) => pt.file_path === t.file_path) &&
         (t.title?.toLowerCase().includes(searchQuery().toLowerCase()) ||
-          t.artist_name?.toLowerCase().includes(searchQuery().toLowerCase()))
-    )
+          t.artist_name?.toLowerCase().includes(searchQuery().toLowerCase())),
+    ),
   );
 
   // ── Mount: load data ──────────────────────────────────────────
@@ -91,9 +99,16 @@ export default function Playlist() {
       if (playlist.cover_path) {
         setCoverPath(playlist.cover_path);
         try {
-          const base64 = await invoke<string>("read_file_as_base64", { path: playlist.cover_path });
-          const ext = playlist.cover_path.split('.').pop()?.toLowerCase();
-          const mime = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+          const base64 = await invoke<string>("read_file_as_base64", {
+            path: playlist.cover_path,
+          });
+          const ext = playlist.cover_path.split(".").pop()?.toLowerCase();
+          const mime =
+            ext === "png"
+              ? "image/png"
+              : ext === "webp"
+                ? "image/webp"
+                : "image/jpeg";
           setCoverAssetUrl(`data:${mime};base64,${base64}`);
         } catch (err) {
           console.error("Failed to load cover:", err);
@@ -101,9 +116,15 @@ export default function Playlist() {
       }
 
       // Fresh playlists (created with default name) start in edit mode
-      const isBrandNew = playlist.name === "New Playlist" && tracks.length === 0;
+      const isBrandNew =
+        playlist.name === "New Playlist" && tracks.length === 0;
       if (isBrandNew) {
-        await openEditMode(playlist.name, playlist.description ?? "", playlist.cover_path, tracks);
+        await openEditMode(
+          playlist.name,
+          playlist.description ?? "",
+          playlist.cover_path,
+          tracks,
+        );
       } else {
         setIsEditing(false);
       }
@@ -119,7 +140,7 @@ export default function Playlist() {
     name: string,
     desc: string,
     cp: string | null,
-    tracks: any[]
+    tracks: any[],
   ) {
     setDraftName(name);
     setDraftDescription(desc);
@@ -128,9 +149,16 @@ export default function Playlist() {
 
     if (cp) {
       try {
-        const base64 = await invoke<string>("read_file_as_base64", { path: cp });
-        const ext = cp.split('.').pop()?.toLowerCase();
-        const mime = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+        const base64 = await invoke<string>("read_file_as_base64", {
+          path: cp,
+        });
+        const ext = cp.split(".").pop()?.toLowerCase();
+        const mime =
+          ext === "png"
+            ? "image/png"
+            : ext === "webp"
+              ? "image/webp"
+              : "image/jpeg";
         setDraftCoverAssetUrl(`data:${mime};base64,${base64}`);
       } catch (err) {
         console.error("Failed to load cover:", err);
@@ -198,8 +226,13 @@ export default function Playlist() {
       try {
         const base64 = await invoke<string>("read_file_as_base64", { path });
         // detect mime type from extension
-        const ext = path.split('.').pop()?.toLowerCase();
-        const mime = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+        const ext = path.split(".").pop()?.toLowerCase();
+        const mime =
+          ext === "png"
+            ? "image/png"
+            : ext === "webp"
+              ? "image/webp"
+              : "image/jpeg";
         setDraftCoverAssetUrl(`data:${mime};base64,${base64}`);
       } catch (err) {
         console.error("Failed to read cover image:", err);
@@ -219,7 +252,8 @@ export default function Playlist() {
     setDragOverIndex(i);
   };
   const handleDrop = () => {
-    const from = dragIndex(), to = dragOverIndex();
+    const from = dragIndex(),
+      to = dragOverIndex();
     if (from !== null && to !== null && from !== to) {
       const arr = [...draftTracks()];
       const [moved] = arr.splice(from, 1);
@@ -230,21 +264,56 @@ export default function Playlist() {
     setDragOverIndex(null);
   };
 
-  // ── Playing songs ──────────────────────────────────────────────────
-  const handlePlayHeader = () => {
-    const first = playlistTracks()[0];
-    if (first) loadAndPlay(first.file_path, first.title, first.artist_name, first.thumbnail_base64, first.thumbnail_mime);
+
+  const handlePlayHeader = async () => {
+      const tracks = playlistTracks();
+      if (!tracks[0]) return;
+
+      const isPlaylistActive = tracks.some((t) => t.file_path === currentPath());
+      if (isPlaylistActive) {
+        await playerStore.togglePlay();
+        return;
+      }
+
+      await handlePlay(); // no track arg → defaults to tracks[0], same as clicking the first row
   };
 
-  const handlePlay = (track?: any) => {
-    const toPlay = track ?? playlistTracks()[0];
-    if (!toPlay) return;
 
-    if (currentPath() === toPlay.file_path) {
-      isPlaying() ? pauseAudio() : resumeAudio();
-    } else {
-      loadAndPlay(toPlay.file_path, toPlay.title, toPlay.artist_name, toPlay.thumbnail_base64, toPlay.thumbnail_mime);
-    }
+  const handlePlay = async (track?: any) => {
+      try {
+        const tracks = playlistTracks();
+        const toPlay = track ?? tracks[0];
+        if (!toPlay) return;
+
+        if (currentPath() === toPlay.file_path) {
+          isPlaying() ? pauseAudio() : resumeAudio();
+          return;
+        }
+
+        const clickedIndex = tracks.indexOf(toPlay);
+        // const startIndex = clickedIndex === -1 ? 0 : clickedIndex;
+
+        // Because we are reversing the array, we must also invert the start index
+        // e.g., in a 5 track list, index 1 becomes index 3
+        const startIndex = clickedIndex === -1 
+            ? 0 
+            : tracks.length - 1 - clickedIndex;
+
+        // Create a copy, reverse it, then map the IDs
+        const reversedIds = [...tracks].reverse().map((t) => t.id);
+
+        await queueStore.replaceQueue(reversedIds, startIndex);
+
+        await playerStore.loadAndPlay(
+          toPlay.file_path,
+          toPlay.title,
+          toPlay.artist_name,
+          toPlay.thumbnail_base64 ?? "",
+          toPlay.thumbnail_mime ?? "",
+        );
+      } catch (e) {
+        console.error("Failed to play playlist:", e);
+      }
   };
 
   // Does a simple shuffle but we probably have to change it when we implement our queue ****
@@ -255,9 +324,15 @@ export default function Playlist() {
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     const first = shuffled[0];
-    if (first) loadAndPlay(first.file_path, first.title, first.artist_name, first.thumbnail_base64, first.thumbnail_mime);
+    if (first)
+      loadAndPlay(
+        first.file_path,
+        first.title,
+        first.artist_name,
+        first.thumbnail_base64,
+        first.thumbnail_mime,
+      );
   };
-
 
   // Remove playlist cover
   const handleCoverRemove = () => {
@@ -276,7 +351,6 @@ export default function Playlist() {
       }
     >
       <main class="h-full flex flex-col overflow-hidden">
-
         <PlaylistHeader
           name={isEditing() ? draftName() : playlistName()}
           description={isEditing() ? draftDescription() : description()}
@@ -332,7 +406,6 @@ export default function Playlist() {
             />
           </div>
         </Show>
-
       </main>
     </Show>
   );
